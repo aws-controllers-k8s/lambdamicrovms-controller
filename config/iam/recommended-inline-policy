@@ -1,0 +1,20 @@
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": [
+				"lambda:CreateMicrovmImage",
+				"lambda:UpdateMicrovmImage",
+				"lambda:DeleteMicrovmImage",
+				"lambda:GetMicrovmImage",
+				"lambda:RunMicroVM",
+				"lambda:TerminateMicrovm",
+				"lambda:UntagResource",
+				"lambda:TagResource",
+				"lambda:ListTags"
+			],
+			"Resource": "*"
+		}
+	]
+}

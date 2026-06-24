@@ -1,0 +1,42 @@
+# This configuration is a placeholder. Replace any values with relevant values for your
+# service controller project.
+---
+annotations:
+  capabilityLevel: Basic Install
+  shortDescription: AWS Lambda Microvms controller is a service controller for managing Lambda Microvms resources
+    in Kubernetes
+displayName: AWS Controllers for Kubernetes - Amazon Lambda Microvms
+description: |-
+  Manage Amazon Lambda Microvms resources in AWS from within your Kubernetes cluster.
+
+
+  **About Amazon Lambda Microvms**
+
+
+  If you're building an application where multiple users or AI agents connect to a compute environment and run code (for e.g. interactive development environments, CI/CD systems, or sandboxes for AI) – you need compute environments that start fast, stay isolated between tenants, and don't require you to manage servers or networking.
+
+  AWS Lambda MicroVMs are purpose-built for these use cases. They are serverless compute environments that provide VM-level isolation with full operating system capabilities (for e.g. installing system packages or mounting filesystems), snapshot-based rapid startup speeds, and fine-grained control over ingress networking (port access, support for HTTP/2, gRPC, WebSockets) and egress networking (public internet access and VPC access).
+
+
+  **About the AWS Controllers for Kubernetes**
+
+
+  This controller is a component of the [AWS Controller for Kubernetes](https://github.com/aws/aws-controllers-k8s)
+  project. This project is currently in **developer preview**.
+
+
+  **Pre-Installation Steps**
+
+
+  Please follow the following link: [Red Hat OpenShift](https://aws-controllers-k8s.github.io/community/docs/user-docs/openshift/)
+samples:
+- kind: ExampleCustomKind
+  spec: '{}'
+- kind: SecondExampleCustomKind
+  spec: '{}'
+maintainers:
+- name: "lambdamicrovms maintainer team"
+  email: "ack-maintainers@amazon.com"
+links:
+- name: Amazon Lambda Microvms Developer Resources
+  url: https://docs.aws.amazon.com/lambda/latest/dg/lambda-microvms-guide.html

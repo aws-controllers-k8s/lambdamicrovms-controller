@@ -1,0 +1,20 @@
+# See the OWNERS docs at https://go.k8s.io/owners#owners_aliases
+
+aliases:
+  core-ack-team:
+    - a-hilaly
+    - jlbutler
+    - michaelhtm
+    - knottnt
+    - gustavodiaz7722
+    - sapphirew
+  # emeritus-core-ack-team:
+  #   - rushmash91
+  #   - TiberiuGC
+  #   - jaypipes
+  #   - jljaco
+  #   - mhausenblas
+  #   - RedbackThomson
+  #   - vijtrip2
+  #   - ivelichkovich
+

@@ -1,0 +1,8 @@
+service:
+  full_name: AWS Lambda MicroVMs
+  short_name: Lambda MicroVMs
+  link: https://docs.aws.amazon.com/lambda/
+  documentation: https://docs.aws.amazon.com/lambda/latest/dg/lambda-microvms-guide.html
+api_versions:
+  - api_version: v1alpha1
+    status: available

@@ -1,0 +1,18 @@
+apiVersion: v1
+name: lambdamicrovms-chart
+description: A Helm chart for the ACK service controller for AWS Lambda MicroVMs (Lambda MicroVMs)
+version: 0.0.0-non-release-version
+appVersion: 0.0.0-non-release-version
+home: https://github.com/aws-controllers-k8s/lambdamicrovms-controller
+icon: https://raw.githubusercontent.com/aws/eks-charts/master/docs/logo/aws.png
+sources:
+  - https://github.com/aws-controllers-k8s/lambdamicrovms-controller
+maintainers:
+  - name: ACK Admins
+    url: https://github.com/orgs/aws-controllers-k8s/teams/ack-admin
+  - name: Lambda MicroVMs Admins
+    url: https://github.com/orgs/aws-controllers-k8s/teams/lambdamicrovms-maintainer
+keywords:
+  - aws
+  - kubernetes
+  - lambdamicrovms
