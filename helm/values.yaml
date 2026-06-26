@@ -150,6 +150,8 @@ reconcile:
   # If empty, all resources will be reconciled.
   # If specified, only the listed resource kinds will be reconciled.
   resources:
+    - Microvm
+    - MicrovmImage
 
 serviceAccount:
   # Specifies whether a service account should be created

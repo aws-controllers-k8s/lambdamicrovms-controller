@@ -1,7 +1,172 @@
 ignore:
   resource_names:
-      - MicrovmAuthToken
-      - MicrovmImage
-      - MicrovmShellAuthToken
+    - MicrovmAuthToken
+    - MicrovmShellAuthToken
+    - MicrovmImageVersion
+    - MicrovmImageBuild
+    - ManagedMicrovmImage
+    - ManagedMicrovmImageVersion
+
 sdk_names:
   model_name: lambda-microvms
+
+empty_shapes:
+  - LoggingDisabled
+
+operations:
+  RunMicrovm:
+    resource_name: Microvm
+    operation_type: Create
+  TerminateMicrovm:
+    resource_name: Microvm
+    operation_type: Delete
+
+resources:
+  MicrovmImage:
+    is_arn_primary_key: true
+    renames:
+      operations:
+        GetMicrovmImage:
+          input_fields:
+            ImageIdentifier: Name
+        UpdateMicrovmImage:
+          input_fields:
+            ImageIdentifier: Name
+        DeleteMicrovmImage:
+          input_fields:
+            ImageIdentifier: Name
+    ignore_idempotency_token: true
+    tags:
+      ignore: false
+    synced:
+      when:
+        - path: Status.State
+          in:
+            - "CREATED"
+            - "UPDATED"
+    reconcile:
+      requeue_on_success_seconds: 60
+    updateable:
+      when:
+        - path: Status.State
+          in:
+            - "CREATED"
+            - "UPDATED"
+            - "CREATE_FAILED"
+            - "UPDATE_FAILED"
+    deletable:
+      when:
+        - path: Status.State
+          in:
+            - "CREATED"
+            - "UPDATED"
+            - "CREATE_FAILED"
+            - "UPDATE_FAILED"
+            - "DELETE_FAILED"
+            - "DELETING"
+            - "DELETED"
+    exceptions:
+      errors:
+        404:
+          code: ResourceNotFoundException
+      terminal_codes:
+        - ValidationException
+        - InvalidParameterValueException
+        - AccessDeniedException
+    fields:
+      Name:
+        is_primary_key: true
+        is_required: true
+        is_immutable: true
+      BuildRoleArn:
+        references:
+          resource: Role
+          path: Status.ACKResourceMetadata.ARN
+          service_name: iam
+    hooks:
+      sdk_create_post_set_output:
+        template_path: hooks/microvm_image/sdk_create_post_set_output.go.tpl
+      sdk_read_one_pre_build_request:
+        template_path: hooks/microvm_image/sdk_read_one_pre_build_request.go.tpl
+      sdk_read_one_post_build_request:
+        template_path: hooks/microvm_image/sdk_read_one_post_build_request.go.tpl
+      sdk_update_post_build_request:
+        template_path: hooks/microvm_image/sdk_update_post_build_request.go.tpl
+      sdk_delete_pre_build_request:
+        template_path: hooks/microvm_image/sdk_delete_pre_build_request.go.tpl
+      sdk_delete_post_build_request:
+        template_path: hooks/microvm_image/sdk_delete_post_build_request.go.tpl
+      sdk_delete_post_request:
+        template_path: hooks/microvm_image/sdk_delete_post_request.go.tpl
+
+  Microvm:
+    renames:
+      operations:
+        GetMicrovm:
+          input_fields:
+            MicrovmIdentifier: MicrovmId
+        TerminateMicrovm:
+          input_fields:
+            MicrovmIdentifier: MicrovmId
+    ignore_idempotency_token: true
+    tags:
+      ignore: true
+    synced:
+      when:
+        - path: Status.State
+          in:
+            - "RUNNING"
+            - "SUSPENDING"
+            - "SUSPENDED"
+    reconcile:
+      requeue_on_success_seconds: 30
+    deletable:
+      when:
+        - path: Status.State
+          in:
+            - "RUNNING"
+            - "SUSPENDED"
+            - "TERMINATED"
+    exceptions:
+      errors:
+        404:
+          code: ResourceNotFoundException
+      terminal_codes:
+        - ValidationException
+        - InvalidParameterValueException
+        - AccessDeniedException
+    fields:
+      ImageIdentifier:
+        is_required: true
+        references:
+          resource: MicrovmImage
+          path: Status.ACKResourceMetadata.ARN
+      ExecutionRoleArn:
+        references:
+          resource: Role
+          path: Status.ACKResourceMetadata.ARN
+          service_name: iam
+      EgressNetworkConnectors:
+        late_initialize: {}
+      RunHookPayload:
+        is_secret: true
+      MicrovmId:
+        is_primary_key: true
+        is_read_only: true
+        print:
+          name: MICROVM-ID
+      MaximumDurationInSeconds:
+        late_initialize: {}
+      IngressNetworkConnectors:
+        late_initialize: {}
+    hooks:
+      sdk_create_post_set_output:
+        template_path: hooks/microvm/sdk_create_post_set_output.go.tpl
+      sdk_read_one_pre_build_request:
+        template_path: hooks/microvm/sdk_read_one_pre_build_request.go.tpl
+      sdk_read_one_post_set_output:
+        template_path: hooks/microvm/sdk_read_one_post_set_output.go.tpl
+      sdk_delete_pre_build_request:
+        template_path: hooks/microvm/sdk_delete_pre_build_request.go.tpl
+      sdk_delete_post_request:
+        template_path: hooks/microvm/sdk_delete_post_request.go.tpl

@@ -19,6 +19,7 @@ import (
 	"context"
 	"os"
 
+	iamapitypes "github.com/aws-controllers-k8s/iam-controller/apis/v1alpha1"
 	ackv1alpha1 "github.com/aws-controllers-k8s/runtime/apis/core/v1alpha1"
 	ackcfg "github.com/aws-controllers-k8s/runtime/pkg/config"
 	ackrt "github.com/aws-controllers-k8s/runtime/pkg/runtime"
@@ -39,6 +40,9 @@ import (
 	svctypes "github.com/aws-controllers-k8s/lambdamicrovms-controller/apis/v1alpha1"
 	svcresource "github.com/aws-controllers-k8s/lambdamicrovms-controller/pkg/resource"
 
+	_ "github.com/aws-controllers-k8s/lambdamicrovms-controller/pkg/resource/microvm"
+	_ "github.com/aws-controllers-k8s/lambdamicrovms-controller/pkg/resource/microvm_image"
+
 	"github.com/aws-controllers-k8s/lambdamicrovms-controller/pkg/version"
 )
 
@@ -54,6 +58,7 @@ func init() {
 
 	_ = svctypes.AddToScheme(scheme)
 	_ = ackv1alpha1.AddToScheme(scheme)
+	_ = iamapitypes.AddToScheme(scheme)
 }
 
 func main() {

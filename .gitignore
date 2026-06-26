@@ -7,3 +7,12 @@ bin
 build
 .env
 READ_BEFORE_COMMIT.md
+SPEC.md
+
+# Local development
+*.log
+*.out
+cover.out
+coverage.html
+tmp/
+vendor/

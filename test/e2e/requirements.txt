@@ -1,1 +1,8 @@
-acktest @ git+https://github.com/aws-controllers-k8s/test-infra.git@f992ff8307071f32c0685d0bb1b5bab3666fc5b5
+# acktest framework (test-infra pins boto3==1.42.60 which is too old for lambda-microvms).
+# Install acktest first, then upgrade boto3 after. See install instructions below.
+acktest @ git+https://github.com/aws-controllers-k8s/test-infra.git@6f151aa
+kubernetes>=28.1.0
+PyYAML>=6.0.1
+pytest>=7.0.0
+pytest-xdist>=3.5.0
+setuptools

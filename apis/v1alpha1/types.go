@@ -27,3 +27,176 @@ var (
 	_ = &aws.JSONValue{}
 	_ = ackv1alpha1.AWSAccountID("")
 )
+
+// Configuration for the CPU architecture of a MicroVM.
+type CPUConfiguration struct {
+	Architecture *string `json:"architecture,omitempty"`
+}
+
+// Configuration for Amazon CloudWatch Logs logging.
+type CloudWatchLogging struct {
+	LogGroup  *string `json:"logGroup,omitempty"`
+	LogStream *string `json:"logStream,omitempty"`
+}
+
+// Contains the location of the code artifact for a MicroVM image.
+type CodeArtifact struct {
+	// A string which is not empty or blank (only whitespace).
+	URI *string `json:"uri,omitempty"`
+}
+
+// Lifecycle hook configuration for MicroVMs and MicroVM images.
+type Hooks struct {
+	// Configuration for lifecycle hooks invoked during MicroVM events such as run,
+	// resume, suspend, and terminate.
+	MicrovmHooks *MicrovmHooks `json:"microvmHooks,omitempty"`
+	// Configuration for hooks invoked during MicroVM image build events such as
+	// ready and validate.
+	MicrovmImageHooks *MicrovmImageHooks `json:"microvmImageHooks,omitempty"`
+	Port              *int64             `json:"port,omitempty"`
+}
+
+// Configuration that controls MicroVM auto-suspend and auto-resume behavior.
+// Idle time is measured by inbound traffic through the MicroVM proxy endpoint
+// — if no requests arrive within the configured duration, the MicroVM is
+// suspended.
+type IdlePolicy struct {
+	AutoResumeEnabled        *bool  `json:"autoResumeEnabled,omitempty"`
+	MaxIdleDurationSeconds   *int64 `json:"maxIdleDurationSeconds,omitempty"`
+	SuspendedDurationSeconds *int64 `json:"suspendedDurationSeconds,omitempty"`
+}
+
+// Configuration for MicroVM logging output. Specify exactly one: cloudWatch
+// to enable CloudWatch logging, or disabled to turn off logging.
+type Logging struct {
+	// Configuration for Amazon CloudWatch Logs logging.
+	CloudWatch *CloudWatchLogging `json:"cloudWatch,omitempty"`
+	// Specifies that logging is disabled for the MicroVM.
+	Disabled map[string]*string `json:"disabled,omitempty"`
+}
+
+// Contains summary information about a managed MicroVM image.
+type ManagedMicrovmImageSummary struct {
+	CreatedAt *metav1.Time `json:"createdAt,omitempty"`
+	// A string which is not empty or blank (only whitespace).
+	ImageARN  *string      `json:"imageARN,omitempty"`
+	UpdatedAt *metav1.Time `json:"updatedAt,omitempty"`
+}
+
+// Contains version information for a managed MicroVM image.
+type ManagedMicrovmImageVersion struct {
+	CreatedAt *metav1.Time `json:"createdAt,omitempty"`
+	// A string which is not empty or blank (only whitespace).
+	ImageARN *string `json:"imageARN,omitempty"`
+	// A string which is not empty or blank (only whitespace).
+	ImageVersion *string      `json:"imageVersion,omitempty"`
+	UpdatedAt    *metav1.Time `json:"updatedAt,omitempty"`
+}
+
+// Configuration for lifecycle hooks invoked during MicroVM events such as run,
+// resume, suspend, and terminate.
+type MicrovmHooks struct {
+	// Whether invocation hooks are enabled or disabled on a MicroVm.
+	Resume                 *string `json:"resume,omitempty"`
+	ResumeTimeoutInSeconds *int64  `json:"resumeTimeoutInSeconds,omitempty"`
+	// Whether invocation hooks are enabled or disabled on a MicroVm.
+	Run                 *string `json:"run,omitempty"`
+	RunTimeoutInSeconds *int64  `json:"runTimeoutInSeconds,omitempty"`
+	// Whether invocation hooks are enabled or disabled on a MicroVm.
+	Suspend                 *string `json:"suspend,omitempty"`
+	SuspendTimeoutInSeconds *int64  `json:"suspendTimeoutInSeconds,omitempty"`
+	// Whether invocation hooks are enabled or disabled on a MicroVm.
+	Terminate                 *string `json:"terminate,omitempty"`
+	TerminateTimeoutInSeconds *int64  `json:"terminateTimeoutInSeconds,omitempty"`
+}
+
+// Contains summary information about a MicroVM image build.
+type MicrovmImageBuildSummary struct {
+	Architecture *string `json:"architecture,omitempty"`
+	// A string which is not empty or blank (only whitespace).
+	BuildID *string `json:"buildID,omitempty"`
+	// A string which is not empty or blank (only whitespace).
+	ChipsetGeneration *string      `json:"chipsetGeneration,omitempty"`
+	CreatedAt         *metav1.Time `json:"createdAt,omitempty"`
+	// A string which is not empty or blank (only whitespace).
+	ImageARN *string `json:"imageARN,omitempty"`
+	// A string which is not empty or blank (only whitespace).
+	ImageVersion *string `json:"imageVersion,omitempty"`
+	StateReason  *string `json:"stateReason,omitempty"`
+}
+
+// Configuration for hooks invoked during MicroVM image build events such as
+// ready and validate.
+type MicrovmImageHooks struct {
+	// Whether invocation hooks are enabled or disabled on a MicroVm.
+	Ready                    *string `json:"ready,omitempty"`
+	ReadyTimeoutInSeconds    *int64  `json:"readyTimeoutInSeconds,omitempty"`
+	ValidateTimeoutInSeconds *int64  `json:"validateTimeoutInSeconds,omitempty"`
+	// Whether invocation hooks are enabled or disabled on a MicroVm.
+	Validate *string `json:"validate,omitempty"`
+}
+
+// Contains summary information about a MicroVM image.
+type MicrovmImageSummary struct {
+	CreatedAt *metav1.Time `json:"createdAt,omitempty"`
+	// A string which is not empty or blank (only whitespace).
+	ImageARN *string `json:"imageARN,omitempty"`
+	// A string which is not empty or blank (only whitespace).
+	LatestActiveImageVersion *string `json:"latestActiveImageVersion,omitempty"`
+	// A string which is not empty or blank (only whitespace).
+	LatestFailedImageVersion *string `json:"latestFailedImageVersion,omitempty"`
+	// Name of a MicroVM image.
+	Name  *string `json:"name,omitempty"`
+	State *string `json:"state,omitempty"`
+}
+
+// Contains summary information about a version of a MicroVM image.
+type MicrovmImageVersionSummary struct {
+	// List of capabilities granted to the application when booted
+	AdditionalOsCapabilities []*string `json:"additionalOsCapabilities,omitempty"`
+	// A string which is not empty or blank (only whitespace).
+	BaseImageARN     *string `json:"baseImageARN,omitempty"`
+	BaseImageVersion *string `json:"baseImageVersion,omitempty"`
+	// The ARN of an IAM role that the service assumes to perform actions on behalf
+	// of the caller.
+	BuildRoleARN *string `json:"buildRoleARN,omitempty"`
+	// Contains the location of the code artifact for a MicroVM image.
+	CodeArtifact *CodeArtifact `json:"codeArtifact,omitempty"`
+	// List of CPU architectures
+	CPUConfigurations       []*CPUConfiguration `json:"cpuConfigurations,omitempty"`
+	CreatedAt               *metav1.Time        `json:"createdAt,omitempty"`
+	Description             *string             `json:"description,omitempty"`
+	EgressNetworkConnectors []*string           `json:"egressNetworkConnectors,omitempty"`
+	EnvironmentVariables    map[string]*string  `json:"environmentVariables,omitempty"`
+	// Lifecycle hook configuration for MicroVMs and MicroVM images.
+	Hooks *Hooks `json:"hooks,omitempty"`
+	// A string which is not empty or blank (only whitespace).
+	ImageARN *string `json:"imageARN,omitempty"`
+	// A string which is not empty or blank (only whitespace).
+	ImageVersion *string `json:"imageVersion,omitempty"`
+	// Configuration for MicroVM logging output. Specify exactly one: cloudWatch
+	// to enable CloudWatch logging, or disabled to turn off logging.
+	Logging *Logging `json:"logging,omitempty"`
+	// List of resources
+	Resources   []*Resources       `json:"resources,omitempty"`
+	StateReason *string            `json:"stateReason,omitempty"`
+	Tags        map[string]*string `json:"tags,omitempty"`
+	UpdatedAt   *metav1.Time       `json:"updatedAt,omitempty"`
+}
+
+// Contains summary information about a MicroVM instance.
+type MicrovmItem struct {
+	// MicroVm Image Arn
+	ImageARN     *string `json:"imageARN,omitempty"`
+	ImageVersion *string `json:"imageVersion,omitempty"`
+	// The ARN or ID of the MicroVm
+	MicrovmID *string      `json:"microvmID,omitempty"`
+	StartedAt *metav1.Time `json:"startedAt,omitempty"`
+	// The lifecycle state of a MicroVm.
+	State *string `json:"state,omitempty"`
+}
+
+// Resource requirements for a MicroVM.
+type Resources struct {
+	MinimumMemoryInMiB *int64 `json:"minimumMemoryInMiB,omitempty"`
+}

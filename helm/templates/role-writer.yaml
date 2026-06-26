@@ -16,6 +16,8 @@ rules:
 - apiGroups:
   - lambdamicrovms.services.k8s.aws
   resources:
+  - microvms
+  - microvmimages
   verbs:
   - create
   - delete
@@ -27,6 +29,8 @@ rules:
 - apiGroups:
   - lambdamicrovms.services.k8s.aws
   resources:
+  - microvms
+  - microvmimages
   verbs:
   - get
   - patch

@@ -8,13 +8,26 @@
 				"lambda:UpdateMicrovmImage",
 				"lambda:DeleteMicrovmImage",
 				"lambda:GetMicrovmImage",
-				"lambda:RunMicroVM",
+				"lambda:ListMicrovmImages",
+				"lambda:RunMicrovm",
+				"lambda:GetMicrovm",
 				"lambda:TerminateMicrovm",
-				"lambda:UntagResource",
+				"lambda:ListMicrovms",
 				"lambda:TagResource",
+				"lambda:UntagResource",
 				"lambda:ListTags"
 			],
 			"Resource": "*"
+		},
+		{
+			"Effect": "Allow",
+			"Action": "iam:PassRole",
+			"Resource": "*",
+			"Condition": {
+				"StringEquals": {
+					"iam:PassedToService": "lambda.amazonaws.com"
+				}
+			}
 		}
 	]
 }

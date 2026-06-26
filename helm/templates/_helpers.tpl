@@ -70,6 +70,36 @@ rules:
   - list
   - watch
 - apiGroups:
+  - iam.services.k8s.aws
+  resources:
+  - roles
+  - roles/status
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - lambdamicrovms.services.k8s.aws
+  resources:
+  - microvmimages
+  - microvms
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - lambdamicrovms.services.k8s.aws
+  resources:
+  - microvmimages/status
+  - microvms/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - services.k8s.aws
   resources:
   - fieldexports

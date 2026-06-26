@@ -1,0 +1,10 @@
+apiVersion: lambdamicrovms.services.k8s.aws/v1alpha1
+kind: MicrovmImage
+metadata:
+  name: $RESOURCE_NAME
+spec:
+  name: $RESOURCE_NAME
+  baseImageARN: $BASE_IMAGE_ARN
+  buildRoleARN: $BUILD_ROLE_ARN
+  codeArtifact:
+    uri: $CODE_ARTIFACT_URI

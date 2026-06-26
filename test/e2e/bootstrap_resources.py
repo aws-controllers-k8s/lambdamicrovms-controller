@@ -15,15 +15,22 @@
 for them.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from acktest.bootstrapping import Resources
 from e2e import bootstrap_directory
 
+
 @dataclass
 class BootstrapResources(Resources):
-    pass
+    BuildRoleARN: str = ""
+    ExecutionRoleARN: str = ""
+    CodeArtifactURI: str = ""
+    BaseImageARN: str = ""
+    S3BucketName: str = ""
+
 
 _bootstrap_resources = None
+
 
 def get_bootstrap_resources(bootstrap_file_name: str = "bootstrap.pkl") -> BootstrapResources:
     global _bootstrap_resources

@@ -1,0 +1,15 @@
+apiVersion: lambdamicrovms.services.k8s.aws/v1alpha1
+kind: Microvm
+metadata:
+  name: $RESOURCE_NAME
+spec:
+  imageIdentifier: $IMAGE_IDENTIFIER
+  executionRoleARN: $EXECUTION_ROLE_ARN
+  ingressNetworkConnectors:
+    - arn:aws:lambda:$AWS_REGION:aws:network-connector:aws-network-connector:ALL_INGRESS
+  egressNetworkConnectors:
+    - arn:aws:lambda:$AWS_REGION:aws:network-connector:aws-network-connector:INTERNET_EGRESS
+  idlePolicy:
+    autoResumeEnabled: true
+    maxIdleDurationSeconds: 900
+    suspendedDurationSeconds: 300
