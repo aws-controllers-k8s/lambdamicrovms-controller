@@ -83,12 +83,6 @@ func (rm *resourceManager) sdkFind(
 	if err != nil {
 		return nil, err
 	}
-	// Override ImageIdentifier with the ARN. The codegen sets it from Spec.Name (via rename),
-	// but the API only accepts ARN format for Get/Update/Delete — not plain names.
-	if r.ko.Status.ACKResourceMetadata != nil && r.ko.Status.ACKResourceMetadata.ARN != nil {
-		arn := string(*r.ko.Status.ACKResourceMetadata.ARN)
-		input.ImageIdentifier = &arn
-	}
 
 	var resp *svcsdk.GetMicrovmImageOutput
 	resp, err = rm.sdkapi.GetMicrovmImage(ctx, input)
@@ -156,7 +150,7 @@ func (rm *resourceManager) sdkFind(
 func (rm *resourceManager) requiredFieldsMissingFromReadOneInput(
 	r *resource,
 ) bool {
-	return r.ko.Spec.Name == nil
+	return (r.ko.Status.ACKResourceMetadata == nil || r.ko.Status.ACKResourceMetadata.ARN == nil)
 
 }
 
@@ -167,8 +161,8 @@ func (rm *resourceManager) newDescribeRequestPayload(
 ) (*svcsdk.GetMicrovmImageInput, error) {
 	res := &svcsdk.GetMicrovmImageInput{}
 
-	if r.ko.Spec.Name != nil {
-		res.ImageIdentifier = r.ko.Spec.Name
+	if r.ko.Status.ACKResourceMetadata != nil && r.ko.Status.ACKResourceMetadata.ARN != nil {
+		res.ImageIdentifier = (*string)(r.ko.Status.ACKResourceMetadata.ARN)
 	}
 
 	return res, nil
@@ -657,12 +651,6 @@ func (rm *resourceManager) sdkUpdate(
 	if err != nil {
 		return nil, err
 	}
-	// Override ImageIdentifier with the ARN for the Update call.
-	// Same reason as ReadOne — API rejects plain names.
-	if desired.ko.Status.ACKResourceMetadata != nil && desired.ko.Status.ACKResourceMetadata.ARN != nil {
-		arn := string(*desired.ko.Status.ACKResourceMetadata.ARN)
-		input.ImageIdentifier = &arn
-	}
 
 	var resp *svcsdk.UpdateMicrovmImageOutput
 	_ = resp
@@ -1034,8 +1022,8 @@ func (rm *resourceManager) newUpdateRequestPayload(
 		}
 		res.Hooks = f10
 	}
-	if r.ko.Spec.Name != nil {
-		res.ImageIdentifier = r.ko.Spec.Name
+	if r.ko.Status.ACKResourceMetadata != nil && r.ko.Status.ACKResourceMetadata.ARN != nil {
+		res.ImageIdentifier = (*string)(r.ko.Status.ACKResourceMetadata.ARN)
 	}
 	if r.ko.Spec.Logging != nil {
 		var f12 svcsdktypes.Logging
@@ -1098,17 +1086,8 @@ func (rm *resourceManager) sdkDelete(
 	defer func() {
 		exit(err)
 	}()
-	// Already deleted — skip the API call, let the runtime remove the finalizer.
-	if r.ko.Status.State != nil && *r.ko.Status.State == string(svcapitypes.MicrovmImageState_DELETED) {
-		return r, nil
-	}
-	// Currently deleting — don't call DeleteMicrovmImage again. Requeue and wait.
-	if r.ko.Status.State != nil && *r.ko.Status.State == string(svcapitypes.MicrovmImageState_DELETING) {
-		return r, requeueWaitWhileDeleting
-	}
-
 	if r.ko.Status.State != nil {
-		if !ackutil.InStrings(*r.ko.Status.State, []string{"CREATED", "UPDATED", "CREATE_FAILED", "UPDATE_FAILED", "DELETE_FAILED", "DELETING", "DELETED"}) {
+		if !ackutil.InStrings(*r.ko.Status.State, []string{"CREATED", "UPDATED", "CREATE_FAILED", "UPDATE_FAILED", "DELETE_FAILED"}) {
 			return nil, ackrequeue.NeededAfter(
 				fmt.Errorf("resource is in %s state, cannot be deleted",
 					*r.ko.Status.State),
@@ -1121,13 +1100,6 @@ func (rm *resourceManager) sdkDelete(
 	if err != nil {
 		return nil, err
 	}
-	// Override ImageIdentifier with the ARN for the Delete call.
-	// Same reason as ReadOne — API rejects plain names.
-	if r.ko.Status.ACKResourceMetadata != nil && r.ko.Status.ACKResourceMetadata.ARN != nil {
-		arn := string(*r.ko.Status.ACKResourceMetadata.ARN)
-		input.ImageIdentifier = &arn
-	}
-
 	var resp *svcsdk.DeleteMicrovmImageOutput
 	_ = resp
 	resp, err = rm.sdkapi.DeleteMicrovmImage(ctx, input)
@@ -1161,8 +1133,8 @@ func (rm *resourceManager) newDeleteRequestPayload(
 ) (*svcsdk.DeleteMicrovmImageInput, error) {
 	res := &svcsdk.DeleteMicrovmImageInput{}
 
-	if r.ko.Spec.Name != nil {
-		res.ImageIdentifier = r.ko.Spec.Name
+	if r.ko.Status.ACKResourceMetadata != nil && r.ko.Status.ACKResourceMetadata.ARN != nil {
+		res.ImageIdentifier = (*string)(r.ko.Status.ACKResourceMetadata.ARN)
 	}
 
 	return res, nil
@@ -1258,13 +1230,8 @@ func (rm *resourceManager) updateConditions(
 			recoverableCondition.Message = nil
 		}
 	}
-	if syncCondition == nil && onSuccess {
-		syncCondition = &ackv1alpha1.Condition{
-			Type:   ackv1alpha1.ConditionTypeResourceSynced,
-			Status: corev1.ConditionTrue,
-		}
-		ko.Status.Conditions = append(ko.Status.Conditions, syncCondition)
-	}
+	// Required to avoid the "declared but not used" error in the default case
+	_ = syncCondition
 	if terminalCondition != nil || recoverableCondition != nil || syncCondition != nil {
 		return &resource{ko}, true // updated
 	}
@@ -1285,8 +1252,7 @@ func (rm *resourceManager) terminalAWSError(err error) bool {
 	}
 	switch terminalErr.ErrorCode() {
 	case "ValidationException",
-		"InvalidParameterValueException",
-		"AccessDeniedException":
+		"InvalidParameterValueException":
 		return true
 	default:
 		return false

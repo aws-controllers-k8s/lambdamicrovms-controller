@@ -460,22 +460,8 @@ func (rm *resourceManager) sdkDelete(
 	defer func() {
 		exit(err)
 	}()
-	// Guard: can't terminate without the server-assigned ID.
-	if r.ko.Status.MicrovmID == nil || *r.ko.Status.MicrovmID == "" {
-		return nil, ackerr.NewTerminalError(fmt.Errorf("microvmId not found in status — resource may be orphaned"))
-	}
-	// Already terminated — skip the API call, let the runtime remove the finalizer.
-	if r.ko.Status.State != nil && *r.ko.Status.State == string(svcapitypes.MicrovmState_TERMINATED) {
-		return r, nil
-	}
-	// Currently terminating — don't call TerminateMicrovm again (would get ConflictException).
-	// Requeue and wait for it to finish.
-	if r.ko.Status.State != nil && *r.ko.Status.State == string(svcapitypes.MicrovmState_TERMINATING) {
-		return r, requeueWaitWhileTerminating
-	}
-
 	if r.ko.Status.State != nil {
-		if !ackutil.InStrings(*r.ko.Status.State, []string{"RUNNING", "SUSPENDED", "TERMINATED"}) {
+		if !ackutil.InStrings(*r.ko.Status.State, []string{"RUNNING", "SUSPENDED"}) {
 			return nil, ackrequeue.NeededAfter(
 				fmt.Errorf("resource is in %s state, cannot be deleted",
 					*r.ko.Status.State),
@@ -613,13 +599,8 @@ func (rm *resourceManager) updateConditions(
 			recoverableCondition.Message = nil
 		}
 	}
-	if syncCondition == nil && onSuccess {
-		syncCondition = &ackv1alpha1.Condition{
-			Type:   ackv1alpha1.ConditionTypeResourceSynced,
-			Status: corev1.ConditionTrue,
-		}
-		ko.Status.Conditions = append(ko.Status.Conditions, syncCondition)
-	}
+	// Required to avoid the "declared but not used" error in the default case
+	_ = syncCondition
 	if terminalCondition != nil || recoverableCondition != nil || syncCondition != nil {
 		return &resource{ko}, true // updated
 	}
@@ -640,8 +621,7 @@ func (rm *resourceManager) terminalAWSError(err error) bool {
 	}
 	switch terminalErr.ErrorCode() {
 	case "ValidationException",
-		"InvalidParameterValueException",
-		"AccessDeniedException":
+		"InvalidParameterValueException":
 		return true
 	default:
 		return false

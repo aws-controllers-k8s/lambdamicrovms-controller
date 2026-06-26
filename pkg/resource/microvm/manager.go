@@ -252,12 +252,6 @@ func (rm *resourceManager) incompleteLateInitialization(
 	res acktypes.AWSResource,
 ) bool {
 	ko := rm.concreteResource(res).ko.DeepCopy()
-	if ko.Spec.EgressNetworkConnectors == nil {
-		return true
-	}
-	if ko.Spec.IngressNetworkConnectors == nil {
-		return true
-	}
 	if ko.Spec.MaximumDurationInSeconds == nil {
 		return true
 	}
@@ -295,7 +289,7 @@ func (rm *resourceManager) IsSynced(ctx context.Context, res acktypes.AWSResourc
 	if r.ko.Status.State == nil {
 		return false, nil
 	}
-	stateCandidates := []string{"RUNNING", "SUSPENDING", "SUSPENDED"}
+	stateCandidates := []string{"RUNNING", "SUSPENDED"}
 	if !ackutil.InStrings(*r.ko.Status.State, stateCandidates) {
 		return false, nil
 	}
