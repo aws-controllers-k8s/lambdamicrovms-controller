@@ -69,13 +69,6 @@ resources:
           resource: Role
           path: Status.ACKResourceMetadata.ARN
           service_name: iam
-    hooks:
-      sdk_create_post_set_output:
-        template_path: hooks/microvm_image/sdk_create_post_set_output.go.tpl
-      sdk_read_one_pre_build_request:
-        template_path: hooks/microvm_image/sdk_read_one_pre_build_request.go.tpl
-      sdk_delete_post_request:
-        template_path: hooks/microvm_image/sdk_delete_post_request.go.tpl
 
   Microvm:
     renames:
@@ -135,10 +128,6 @@ resources:
         late_initialize:
           skip_incomplete_check: {}
     hooks:
-      sdk_create_post_set_output:
-        template_path: hooks/microvm/sdk_create_post_set_output.go.tpl
-      sdk_read_one_pre_build_request:
-        template_path: hooks/microvm/sdk_read_one_pre_build_request.go.tpl
       sdk_read_one_post_set_output:
         template_path: hooks/microvm/sdk_read_one_post_set_output.go.tpl
       sdk_delete_post_request:

@@ -15,18 +15,22 @@
 for them.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from acktest.bootstrapping import Resources
+from acktest.bootstrapping.iam import Role
+from acktest.bootstrapping.s3 import Bucket
 from e2e import bootstrap_directory
 
 
 @dataclass
 class BootstrapResources(Resources):
-    BuildRoleARN: str = ""
-    ExecutionRoleARN: str = ""
+    BuildRole: Role = None
+    ExecutionRole: Role = None
+    CodeArtifactBucket: Bucket = None
+
+    # Non-bootstrappable outputs (populated after bootstrap)
     CodeArtifactURI: str = ""
     BaseImageARN: str = ""
-    S3BucketName: str = ""
 
 
 _bootstrap_resources = None

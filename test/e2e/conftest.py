@@ -11,27 +11,18 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-"""Pytest configuration and fixtures for Lambda MicroVMs E2E tests.
-
-Parameters resolved in priority order:
-  1. CLI args (--build-role-arn, --region, etc.)
-  2. Environment variables (BUILD_ROLE_ARN, AWS_REGION, etc.)
-  3. bootstrap.pkl (created by service_bootstrap.py)
-"""
-
-import os
 import time
 
+import boto3
 import pytest
 from kubernetes.client.exceptions import ApiException
 
-from acktest import k8s
 from acktest.k8s import resource as k8s_resource
 from acktest.resources import random_suffix_name
+from acktest.aws.identity import get_region
 
 from e2e import CRD_GROUP, CRD_VERSION, load_lambdamicrovms_resource
 from e2e.bootstrap_resources import get_bootstrap_resources
-from e2e.replacement_values import REPLACEMENT_VALUES
 
 IMAGE_CREATE_TIMEOUT_SECONDS = 360
 IMAGE_DELETE_TIMEOUT_SECONDS = 120
@@ -40,11 +31,6 @@ POLL_INTERVAL_SECONDS = 15
 
 def pytest_addoption(parser):
     parser.addoption("--runslow", action="store_true", default=False, help="run slow tests")
-    parser.addoption("--build-role-arn", action="store", default=None)
-    parser.addoption("--code-artifact-uri", action="store", default=None)
-    parser.addoption("--execution-role-arn", action="store", default=None)
-    parser.addoption("--base-image-arn", action="store", default=None)
-    parser.addoption("--region", action="store", default=None)
 
 
 def pytest_configure(config):
@@ -62,64 +48,36 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_slow)
 
 
-def _resolve(cli_value, env_var, bootstrap_attr=None):
-    """Resolve a parameter: CLI > env var > bootstrap.pkl."""
-    if cli_value:
-        return cli_value
-    val = os.environ.get(env_var, "")
-    if val:
-        return val
-    if bootstrap_attr:
-        try:
-            bootstrap = get_bootstrap_resources()
-            return getattr(bootstrap, bootstrap_attr, "")
-        except Exception:
-            return ""
-    return ""
+@pytest.fixture(scope="session")
+def region():
+    return get_region()
 
 
 @pytest.fixture(scope="session")
-def region(request):
-    return _resolve(request.config.getoption("--region"), "AWS_REGION") or "eu-west-1"
+def bootstrap_resources():
+    return get_bootstrap_resources()
 
 
 @pytest.fixture(scope="session")
-def base_image_arn(request, region):
-    val = _resolve(request.config.getoption("--base-image-arn"), "BASE_IMAGE_ARN", "BaseImageARN")
-    return val or f"arn:aws:lambda:{region}:aws:microvm-image:al2023-1"
+def lambdamicrovms_client(region):
+    return boto3.client("lambda-microvms", region_name=region)
 
 
 @pytest.fixture(scope="session")
-def build_role_arn(request):
-    val = _resolve(request.config.getoption("--build-role-arn"), "BUILD_ROLE_ARN", "BuildRoleARN")
-    assert val, "Provide --build-role-arn, set BUILD_ROLE_ARN, or run service_bootstrap.py"
-    return val
-
-
-@pytest.fixture(scope="session")
-def code_artifact_uri(request):
-    val = _resolve(request.config.getoption("--code-artifact-uri"), "CODE_ARTIFACT_URI", "CodeArtifactURI")
-    assert val, "Provide --code-artifact-uri, set CODE_ARTIFACT_URI, or run service_bootstrap.py"
-    return val
-
-
-@pytest.fixture(scope="session")
-def execution_role_arn(request):
-    return _resolve(request.config.getoption("--execution-role-arn"), "EXECUTION_ROLE_ARN", "ExecutionRoleARN")
-
-
-@pytest.fixture(scope="session")
-def microvm_image_arn(base_image_arn, build_role_arn, code_artifact_uri, region):
+def microvm_image_arn(bootstrap_resources, region):
     """Session-scoped fixture: creates a MicrovmImage, waits for CREATED,
     yields its ARN for Microvm tests, deletes at session teardown.
     """
+    resources = bootstrap_resources
     resource_name = random_suffix_name("ack-fixture-img", 24)
 
-    replacements = REPLACEMENT_VALUES.copy()
-    replacements["RESOURCE_NAME"] = resource_name
-    replacements["BASE_IMAGE_ARN"] = base_image_arn
-    replacements["BUILD_ROLE_ARN"] = build_role_arn
-    replacements["CODE_ARTIFACT_URI"] = code_artifact_uri
+    replacements = {
+        "RESOURCE_NAME": resource_name,
+        "BASE_IMAGE_ARN": resources.BaseImageARN,
+        "BUILD_ROLE_ARN": resources.BuildRole.arn,
+        "CODE_ARTIFACT_URI": resources.CodeArtifactURI,
+        "AWS_REGION": region,
+    }
 
     resource_data = load_lambdamicrovms_resource(
         "microvm_image", additional_replacements=replacements

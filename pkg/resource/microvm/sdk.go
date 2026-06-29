@@ -66,12 +66,6 @@ func (rm *resourceManager) sdkFind(
 	defer func() {
 		exit(err)
 	}()
-	// GetMicrovm requires the server-assigned microvmID. If it's not in Status yet,
-	// the resource hasn't been created — return NotFound so the reconciler triggers Create.
-	if r.ko.Status.MicrovmID == nil || *r.ko.Status.MicrovmID == "" {
-		return nil, ackerr.NotFound
-	}
-
 	// If any required fields in the input shape are missing, AWS resource is
 	// not created yet. Return NotFound here to indicate to callers that the
 	// resource isn't yet created.
@@ -179,21 +173,13 @@ func (rm *resourceManager) sdkFind(
 	}
 
 	rm.setStatusDefaults(ko)
-	// Detect unexpected termination (idle policy timeout or max duration exceeded).
-	// If the controller didn't initiate deletion, mark the resource as terminal so the
-	// user knows the VM is gone and won't be restarted.
 	if ko.Status.State != nil && *ko.Status.State == string(svcapitypes.MicrovmState_TERMINATED) {
 		if !rm.isDeleting(r) {
 			msg := "MicroVM terminated unexpectedly (idle policy or max duration exceeded)"
 			if ko.Status.StateReason != nil && *ko.Status.StateReason != "" {
 				msg = *ko.Status.StateReason
 			}
-			terminalCondition := &ackv1alpha1.Condition{
-				Type:    ackv1alpha1.ConditionTypeTerminal,
-				Status:  corev1.ConditionTrue,
-				Message: &msg,
-			}
-			ko.Status.Conditions = append(ko.Status.Conditions, terminalCondition)
+			return &resource{ko}, ackerr.NewTerminalError(fmt.Errorf(msg))
 		}
 	}
 
@@ -332,12 +318,6 @@ func (rm *resourceManager) sdkCreate(
 	}
 
 	rm.setStatusDefaults(ko)
-	// Orphan safety: ensure the server-assigned microvmID was persisted to Status.
-	// Without this, a crash before status patch would leave a running VM with no way to terminate it.
-	if ko.Status.MicrovmID == nil || *ko.Status.MicrovmID == "" {
-		return nil, fmt.Errorf("RunMicrovm response missing microvmId — cannot persist identifier for orphan safety")
-	}
-
 	return &resource{ko}, nil
 }
 
@@ -478,17 +458,7 @@ func (rm *resourceManager) sdkDelete(
 	_ = resp
 	resp, err = rm.sdkapi.TerminateMicrovm(ctx, input)
 	rm.metrics.RecordAPICall("DELETE", "TerminateMicrovm", err)
-	// TerminateMicrovm returns an empty response — the VM terminates asynchronously.
-	// Poll GetMicrovm until TERMINATED or NotFound, then let the runtime remove the finalizer.
 	if err == nil {
-		observed, findErr := rm.sdkFind(ctx, r)
-		if findErr != nil {
-			if findErr == ackerr.NotFound {
-				return r, nil
-			}
-			return nil, findErr
-		}
-		r.SetStatus(observed)
 		return r, requeueWaitWhileTerminating
 	}
 

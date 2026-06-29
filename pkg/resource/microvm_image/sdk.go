@@ -66,12 +66,6 @@ func (rm *resourceManager) sdkFind(
 	defer func() {
 		exit(err)
 	}()
-	// GetMicrovmImage requires an ARN for ImageIdentifier — plain names are rejected with
-	// ValidationException. If ARN isn't set yet, the resource hasn't been created.
-	if r.ko.Status.ACKResourceMetadata == nil || r.ko.Status.ACKResourceMetadata.ARN == nil {
-		return nil, ackerr.NotFound
-	}
-
 	// If any required fields in the input shape are missing, AWS resource is
 	// not created yet. Return NotFound here to indicate to callers that the
 	// resource isn't yet created.
@@ -410,14 +404,6 @@ func (rm *resourceManager) sdkCreate(
 	}
 
 	rm.setStatusDefaults(ko)
-	// The codegen sets Status.ImageARN from the Create response but does NOT copy it
-	// into ACKResourceMetadata.ARN. Without this, subsequent ReadOne calls return NotFound
-	// (our pre_build_request hook gates on ARN), causing the reconciler to call Create again.
-	if ko.Status.ImageARN != nil {
-		arn := ackv1alpha1.AWSResourceName(*ko.Status.ImageARN)
-		ko.Status.ACKResourceMetadata.ARN = &arn
-	}
-
 	return &resource{ko}, nil
 }
 
@@ -1104,25 +1090,6 @@ func (rm *resourceManager) sdkDelete(
 	_ = resp
 	resp, err = rm.sdkapi.DeleteMicrovmImage(ctx, input)
 	rm.metrics.RecordAPICall("DELETE", "DeleteMicrovmImage", err)
-	// DeleteMicrovmImage is async — the image transitions DELETING -> DELETED.
-	// Poll until the image is gone or in DELETED state before letting the runtime
-	// remove the finalizer.
-	if err == nil {
-		observed, findErr := rm.sdkFind(ctx, r)
-		if findErr != nil {
-			if findErr == ackerr.NotFound {
-				return r, nil
-			}
-			return nil, findErr
-		}
-		state := observed.ko.Status.State
-		if state != nil && *state == string(svcapitypes.MicrovmImageState_DELETED) {
-			return r, nil
-		}
-		r.SetStatus(observed)
-		return r, requeueWaitWhileDeleting
-	}
-
 	return nil, err
 }
 
