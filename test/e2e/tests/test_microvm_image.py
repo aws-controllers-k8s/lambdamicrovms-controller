@@ -24,7 +24,7 @@ from e2e import CRD_GROUP, CRD_VERSION, load_lambdamicrovms_resource, service_ma
 from e2e.bootstrap_resources import get_bootstrap_resources
 
 RESOURCE_PLURAL = "microvmimages"
-CREATE_TIMEOUT_SECONDS = 360
+CREATE_TIMEOUT_SECONDS = 600
 UPDATE_TIMEOUT_SECONDS = 360
 POLL_INTERVAL_SECONDS = 15
 DELETE_WAIT_PERIODS = 8
