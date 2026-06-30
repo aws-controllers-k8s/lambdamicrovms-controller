@@ -417,14 +417,14 @@ func (in *MicrovmImageHooks) DeepCopyInto(out *MicrovmImageHooks) {
 		*out = new(int64)
 		**out = **in
 	}
-	if in.ValidateTimeoutInSeconds != nil {
-		in, out := &in.ValidateTimeoutInSeconds, &out.ValidateTimeoutInSeconds
-		*out = new(int64)
-		**out = **in
-	}
 	if in.Validate != nil {
 		in, out := &in.Validate, &out.Validate
 		*out = new(string)
+		**out = **in
+	}
+	if in.ValidateTimeoutInSeconds != nil {
+		in, out := &in.ValidateTimeoutInSeconds, &out.ValidateTimeoutInSeconds
+		*out = new(int64)
 		**out = **in
 	}
 }

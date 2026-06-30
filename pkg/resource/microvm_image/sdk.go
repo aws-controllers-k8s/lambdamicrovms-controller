@@ -305,12 +305,12 @@ func (rm *resourceManager) sdkCreate(
 				readyTimeoutInSecondsCopy := int64(*resp.Hooks.MicrovmImageHooks.ReadyTimeoutInSeconds)
 				f10f1.ReadyTimeoutInSeconds = &readyTimeoutInSecondsCopy
 			}
+			if resp.Hooks.MicrovmImageHooks.Validate != "" {
+				f10f1.Validate = aws.String(string(resp.Hooks.MicrovmImageHooks.Validate))
+			}
 			if resp.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds != nil {
 				validateTimeoutInSecondsCopy := int64(*resp.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds)
 				f10f1.ValidateTimeoutInSeconds = &validateTimeoutInSecondsCopy
-			}
-			if resp.Hooks.MicrovmImageHooks.Validate != "" {
-				f10f1.Validate = aws.String(string(resp.Hooks.MicrovmImageHooks.Validate))
 			}
 			f10.MicrovmImageHooks = f10f1
 		}
@@ -530,6 +530,9 @@ func (rm *resourceManager) newCreateRequestPayload(
 				readyTimeoutInSecondsCopy := int32(readyTimeoutInSecondsCopy0)
 				f10f1.ReadyTimeoutInSeconds = &readyTimeoutInSecondsCopy
 			}
+			if r.ko.Spec.Hooks.MicrovmImageHooks.Validate != nil {
+				f10f1.Validate = svcsdktypes.HookState(*r.ko.Spec.Hooks.MicrovmImageHooks.Validate)
+			}
 			if r.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds != nil {
 				validateTimeoutInSecondsCopy0 := *r.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds
 				if validateTimeoutInSecondsCopy0 > math.MaxInt32 || validateTimeoutInSecondsCopy0 < math.MinInt32 {
@@ -537,9 +540,6 @@ func (rm *resourceManager) newCreateRequestPayload(
 				}
 				validateTimeoutInSecondsCopy := int32(validateTimeoutInSecondsCopy0)
 				f10f1.ValidateTimeoutInSeconds = &validateTimeoutInSecondsCopy
-			}
-			if r.ko.Spec.Hooks.MicrovmImageHooks.Validate != nil {
-				f10f1.Validate = svcsdktypes.HookState(*r.ko.Spec.Hooks.MicrovmImageHooks.Validate)
 			}
 			f10.MicrovmImageHooks = f10f1
 		}
@@ -764,12 +764,12 @@ func (rm *resourceManager) sdkUpdate(
 				readyTimeoutInSecondsCopy := int64(*resp.Hooks.MicrovmImageHooks.ReadyTimeoutInSeconds)
 				f10f1.ReadyTimeoutInSeconds = &readyTimeoutInSecondsCopy
 			}
+			if resp.Hooks.MicrovmImageHooks.Validate != "" {
+				f10f1.Validate = aws.String(string(resp.Hooks.MicrovmImageHooks.Validate))
+			}
 			if resp.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds != nil {
 				validateTimeoutInSecondsCopy := int64(*resp.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds)
 				f10f1.ValidateTimeoutInSeconds = &validateTimeoutInSecondsCopy
-			}
-			if resp.Hooks.MicrovmImageHooks.Validate != "" {
-				f10f1.Validate = aws.String(string(resp.Hooks.MicrovmImageHooks.Validate))
 			}
 			f10.MicrovmImageHooks = f10f1
 		}
@@ -985,6 +985,9 @@ func (rm *resourceManager) newUpdateRequestPayload(
 				readyTimeoutInSecondsCopy := int32(readyTimeoutInSecondsCopy0)
 				f10f1.ReadyTimeoutInSeconds = &readyTimeoutInSecondsCopy
 			}
+			if r.ko.Spec.Hooks.MicrovmImageHooks.Validate != nil {
+				f10f1.Validate = svcsdktypes.HookState(*r.ko.Spec.Hooks.MicrovmImageHooks.Validate)
+			}
 			if r.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds != nil {
 				validateTimeoutInSecondsCopy0 := *r.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds
 				if validateTimeoutInSecondsCopy0 > math.MaxInt32 || validateTimeoutInSecondsCopy0 < math.MinInt32 {
@@ -992,9 +995,6 @@ func (rm *resourceManager) newUpdateRequestPayload(
 				}
 				validateTimeoutInSecondsCopy := int32(validateTimeoutInSecondsCopy0)
 				f10f1.ValidateTimeoutInSeconds = &validateTimeoutInSecondsCopy
-			}
-			if r.ko.Spec.Hooks.MicrovmImageHooks.Validate != nil {
-				f10f1.Validate = svcsdktypes.HookState(*r.ko.Spec.Hooks.MicrovmImageHooks.Validate)
 			}
 			f10.MicrovmImageHooks = f10f1
 		}

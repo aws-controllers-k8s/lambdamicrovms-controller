@@ -129,11 +129,11 @@ type MicrovmImageBuildSummary struct {
 // ready and validate.
 type MicrovmImageHooks struct {
 	// Whether invocation hooks are enabled or disabled on a MicroVm.
-	Ready                    *string `json:"ready,omitempty"`
-	ReadyTimeoutInSeconds    *int64  `json:"readyTimeoutInSeconds,omitempty"`
-	ValidateTimeoutInSeconds *int64  `json:"validateTimeoutInSeconds,omitempty"`
+	Ready                 *string `json:"ready,omitempty"`
+	ReadyTimeoutInSeconds *int64  `json:"readyTimeoutInSeconds,omitempty"`
 	// Whether invocation hooks are enabled or disabled on a MicroVm.
-	Validate *string `json:"validate,omitempty"`
+	Validate                 *string `json:"validate,omitempty"`
+	ValidateTimeoutInSeconds *int64  `json:"validateTimeoutInSeconds,omitempty"`
 }
 
 // Contains summary information about a MicroVM image.

@@ -192,18 +192,18 @@ func newResourceDelta(
 					delta.Add("Spec.Hooks.MicrovmImageHooks.ReadyTimeoutInSeconds", a.ko.Spec.Hooks.MicrovmImageHooks.ReadyTimeoutInSeconds, b.ko.Spec.Hooks.MicrovmImageHooks.ReadyTimeoutInSeconds)
 				}
 			}
-			if ackcompare.HasNilDifference(a.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds, b.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds) {
-				delta.Add("Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds", a.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds, b.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds)
-			} else if a.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds != nil && b.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds != nil {
-				if *a.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds != *b.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds {
-					delta.Add("Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds", a.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds, b.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds)
-				}
-			}
 			if ackcompare.HasNilDifference(a.ko.Spec.Hooks.MicrovmImageHooks.Validate, b.ko.Spec.Hooks.MicrovmImageHooks.Validate) {
 				delta.Add("Spec.Hooks.MicrovmImageHooks.Validate", a.ko.Spec.Hooks.MicrovmImageHooks.Validate, b.ko.Spec.Hooks.MicrovmImageHooks.Validate)
 			} else if a.ko.Spec.Hooks.MicrovmImageHooks.Validate != nil && b.ko.Spec.Hooks.MicrovmImageHooks.Validate != nil {
 				if *a.ko.Spec.Hooks.MicrovmImageHooks.Validate != *b.ko.Spec.Hooks.MicrovmImageHooks.Validate {
 					delta.Add("Spec.Hooks.MicrovmImageHooks.Validate", a.ko.Spec.Hooks.MicrovmImageHooks.Validate, b.ko.Spec.Hooks.MicrovmImageHooks.Validate)
+				}
+			}
+			if ackcompare.HasNilDifference(a.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds, b.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds) {
+				delta.Add("Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds", a.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds, b.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds)
+			} else if a.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds != nil && b.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds != nil {
+				if *a.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds != *b.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds {
+					delta.Add("Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds", a.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds, b.ko.Spec.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds)
 				}
 			}
 		}

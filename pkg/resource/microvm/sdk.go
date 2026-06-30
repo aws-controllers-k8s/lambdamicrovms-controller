@@ -179,7 +179,7 @@ func (rm *resourceManager) sdkFind(
 			if ko.Status.StateReason != nil && *ko.Status.StateReason != "" {
 				msg = *ko.Status.StateReason
 			}
-			return &resource{ko}, ackerr.NewTerminalError(fmt.Errorf(msg))
+			return &resource{ko}, ackerr.NewTerminalError(errors.New(msg))
 		}
 	}
 
