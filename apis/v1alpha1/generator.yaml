@@ -69,6 +69,9 @@ resources:
           resource: Role
           path: Status.ACKResourceMetadata.ARN
           service_name: iam
+    hooks:
+      sdk_create_post_set_output:
+        template_path: hooks/microvm_image/sdk_create_post_set_output.go.tpl
 
   Microvm:
     renames:

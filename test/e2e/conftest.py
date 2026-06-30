@@ -24,7 +24,7 @@ from acktest.aws.identity import get_region
 from e2e import CRD_GROUP, CRD_VERSION, load_lambdamicrovms_resource
 from e2e.bootstrap_resources import get_bootstrap_resources
 
-IMAGE_CREATE_TIMEOUT_SECONDS = 600
+IMAGE_CREATE_TIMEOUT_SECONDS = 360
 IMAGE_DELETE_TIMEOUT_SECONDS = 120
 POLL_INTERVAL_SECONDS = 15
 
