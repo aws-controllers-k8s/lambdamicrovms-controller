@@ -87,11 +87,6 @@ type MicrovmImageStatus struct {
 	// The timestamp when the MicroVM image was created.
 	// +kubebuilder:validation:Optional
 	CreatedAt *metav1.Time `json:"createdAt,omitempty"`
-	// The ARN of the created MicroVM image.
-	//
-	// Regex Pattern: `^[^\s]+$`
-	// +kubebuilder:validation:Optional
-	ImageARN *string `json:"imageARN,omitempty"`
 	// The version of the MicroVM image.
 	//
 	// Regex Pattern: `^[^\s]+$`

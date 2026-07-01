@@ -6,6 +6,11 @@ ignore:
     - MicrovmImageBuild
     - ManagedMicrovmImage
     - ManagedMicrovmImageVersion
+  field_paths:
+    # ImageArn is surfaced via Status.ACKResourceMetadata.ARN (set by the
+    # create/read hooks), so drop it from the CRD to keep it out of the
+    # public API.
+    - CreateMicrovmImageOutput.ImageArn
 
 sdk_names:
   model_name: lambda-microvms
@@ -72,6 +77,8 @@ resources:
     hooks:
       sdk_create_post_set_output:
         template_path: hooks/microvm_image/sdk_create_post_set_output.go.tpl
+      sdk_read_one_post_set_output:
+        template_path: hooks/microvm_image/sdk_read_one_post_set_output.go.tpl
 
   Microvm:
     renames:

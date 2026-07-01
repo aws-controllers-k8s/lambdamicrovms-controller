@@ -98,11 +98,6 @@ func (rm *resourceManager) sdkFind(
 	} else {
 		ko.Status.CreatedAt = nil
 	}
-	if resp.ImageArn != nil {
-		ko.Status.ImageARN = resp.ImageArn
-	} else {
-		ko.Status.ImageARN = nil
-	}
 	if resp.LatestActiveImageVersion != nil {
 		ko.Status.LatestActiveImageVersion = resp.LatestActiveImageVersion
 	} else {
@@ -135,6 +130,14 @@ func (rm *resourceManager) sdkFind(
 	}
 
 	rm.setStatusDefaults(ko)
+	if ko.Status.ACKResourceMetadata == nil {
+		ko.Status.ACKResourceMetadata = &ackv1alpha1.ResourceMetadata{}
+	}
+	if resp.ImageArn != nil {
+		arn := ackv1alpha1.AWSResourceName(*resp.ImageArn)
+		ko.Status.ACKResourceMetadata.ARN = &arn
+	}
+
 	return &resource{ko}, nil
 }
 
@@ -322,11 +325,6 @@ func (rm *resourceManager) sdkCreate(
 	} else {
 		ko.Spec.Hooks = nil
 	}
-	if resp.ImageArn != nil {
-		ko.Status.ImageARN = resp.ImageArn
-	} else {
-		ko.Status.ImageARN = nil
-	}
 	if resp.ImageVersion != nil {
 		ko.Status.ImageVersion = resp.ImageVersion
 	} else {
@@ -343,28 +341,28 @@ func (rm *resourceManager) sdkCreate(
 		ko.Status.LatestFailedImageVersion = nil
 	}
 	if resp.Logging != nil {
-		f15 := &svcapitypes.Logging{}
+		f14 := &svcapitypes.Logging{}
 		switch resp.Logging.(type) {
 		case *svcsdktypes.LoggingMemberCloudWatch:
-			f15f0 := resp.Logging.(*svcsdktypes.LoggingMemberCloudWatch)
-			if f15f0 != nil {
-				f15f0f0 := &svcapitypes.CloudWatchLogging{}
-				if f15f0.Value.LogGroup != nil {
-					f15f0f0.LogGroup = f15f0.Value.LogGroup
+			f14f0 := resp.Logging.(*svcsdktypes.LoggingMemberCloudWatch)
+			if f14f0 != nil {
+				f14f0f0 := &svcapitypes.CloudWatchLogging{}
+				if f14f0.Value.LogGroup != nil {
+					f14f0f0.LogGroup = f14f0.Value.LogGroup
 				}
-				if f15f0.Value.LogStream != nil {
-					f15f0f0.LogStream = f15f0.Value.LogStream
+				if f14f0.Value.LogStream != nil {
+					f14f0f0.LogStream = f14f0.Value.LogStream
 				}
-				f15.CloudWatch = f15f0f0
+				f14.CloudWatch = f14f0f0
 			}
 		case *svcsdktypes.LoggingMemberDisabled:
-			f15f1 := resp.Logging.(*svcsdktypes.LoggingMemberDisabled)
-			if f15f1 != nil {
-				f15f1f1 := map[string]*string{}
-				f15.Disabled = f15f1f1
+			f14f1 := resp.Logging.(*svcsdktypes.LoggingMemberDisabled)
+			if f14f1 != nil {
+				f14f1f1 := map[string]*string{}
+				f14.Disabled = f14f1f1
 			}
 		}
-		ko.Spec.Logging = f15
+		ko.Spec.Logging = f14
 	} else {
 		ko.Spec.Logging = nil
 	}
@@ -374,16 +372,16 @@ func (rm *resourceManager) sdkCreate(
 		ko.Spec.Name = nil
 	}
 	if resp.Resources != nil {
-		f17 := []*svcapitypes.Resources{}
-		for _, f17iter := range resp.Resources {
-			f17elem := &svcapitypes.Resources{}
-			if f17iter.MinimumMemoryInMiB != nil {
-				minimumMemoryInMiBCopy := int64(*f17iter.MinimumMemoryInMiB)
-				f17elem.MinimumMemoryInMiB = &minimumMemoryInMiBCopy
+		f16 := []*svcapitypes.Resources{}
+		for _, f16iter := range resp.Resources {
+			f16elem := &svcapitypes.Resources{}
+			if f16iter.MinimumMemoryInMiB != nil {
+				minimumMemoryInMiBCopy := int64(*f16iter.MinimumMemoryInMiB)
+				f16elem.MinimumMemoryInMiB = &minimumMemoryInMiBCopy
 			}
-			f17 = append(f17, f17elem)
+			f16 = append(f16, f16elem)
 		}
-		ko.Spec.Resources = f17
+		ko.Spec.Resources = f16
 	} else {
 		ko.Spec.Resources = nil
 	}
@@ -788,11 +786,6 @@ func (rm *resourceManager) sdkUpdate(
 		ko.Spec.Hooks = f10
 	} else {
 		ko.Spec.Hooks = nil
-	}
-	if resp.ImageArn != nil {
-		ko.Status.ImageARN = resp.ImageArn
-	} else {
-		ko.Status.ImageARN = nil
 	}
 	if resp.ImageVersion != nil {
 		ko.Status.ImageVersion = resp.ImageVersion

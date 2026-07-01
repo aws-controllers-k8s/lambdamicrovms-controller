@@ -302,12 +302,6 @@ spec:
                 description: The timestamp when the MicroVM image was created.
                 format: date-time
                 type: string
-              imageARN:
-                description: |-
-                  The ARN of the created MicroVM image.
-
-                  Regex Pattern: `^[^\s]+$`
-                type: string
               imageVersion:
                 description: |-
                   The version of the MicroVM image.

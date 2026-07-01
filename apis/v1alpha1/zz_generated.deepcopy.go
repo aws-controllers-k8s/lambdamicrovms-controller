@@ -630,11 +630,6 @@ func (in *MicrovmImageStatus) DeepCopyInto(out *MicrovmImageStatus) {
 		in, out := &in.CreatedAt, &out.CreatedAt
 		*out = (*in).DeepCopy()
 	}
-	if in.ImageARN != nil {
-		in, out := &in.ImageARN, &out.ImageARN
-		*out = new(string)
-		**out = **in
-	}
 	if in.ImageVersion != nil {
 		in, out := &in.ImageVersion, &out.ImageVersion
 		*out = new(string)
