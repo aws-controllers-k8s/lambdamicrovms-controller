@@ -32,6 +32,16 @@ class BootstrapResources(Resources):
     CodeArtifactURI: str = ""
     BaseImageARN: str = ""
 
+    # Images created directly via the AWS API (out-of-band from ACK) to serve
+    # as adoption test targets. Each adoption test gets its OWN image so the
+    # tests can run independently and in parallel (pytest-xdist) without racing
+    # on a shared resource — the tag test in particular mutates its image's
+    # tags, which must not perturb the read-only adopt-policy test.
+    AdoptPolicyImageName: str = ""
+    AdoptPolicyImageARN: str = ""
+    AdoptTagsImageName: str = ""
+    AdoptTagsImageARN: str = ""
+
 
 _bootstrap_resources = None
 

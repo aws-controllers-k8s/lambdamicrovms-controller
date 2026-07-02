@@ -137,6 +137,9 @@ func (rm *resourceManager) sdkFind(
 		arn := ackv1alpha1.AWSResourceName(*resp.ImageArn)
 		ko.Status.ACKResourceMetadata.ARN = &arn
 	}
+	if err := rm.enrichSpecFromActiveVersion(ctx, ko); err != nil {
+		return nil, err
+	}
 
 	return &resource{ko}, nil
 }
@@ -209,39 +212,34 @@ func (rm *resourceManager) sdkCreate(
 	} else {
 		ko.Spec.BaseImageARN = nil
 	}
-	if resp.BaseImageVersion != nil {
-		ko.Spec.BaseImageVersion = resp.BaseImageVersion
-	} else {
-		ko.Spec.BaseImageVersion = nil
-	}
 	if resp.BuildRoleArn != nil {
 		ko.Spec.BuildRoleARN = resp.BuildRoleArn
 	} else {
 		ko.Spec.BuildRoleARN = nil
 	}
 	if resp.CodeArtifact != nil {
-		f4 := &svcapitypes.CodeArtifact{}
+		f3 := &svcapitypes.CodeArtifact{}
 		switch resp.CodeArtifact.(type) {
 		case *svcsdktypes.CodeArtifactMemberUri:
-			f4f0 := resp.CodeArtifact.(*svcsdktypes.CodeArtifactMemberUri)
-			if f4f0 != nil {
-				f4.URI = &f4f0.Value
+			f3f0 := resp.CodeArtifact.(*svcsdktypes.CodeArtifactMemberUri)
+			if f3f0 != nil {
+				f3.URI = &f3f0.Value
 			}
 		}
-		ko.Spec.CodeArtifact = f4
+		ko.Spec.CodeArtifact = f3
 	} else {
 		ko.Spec.CodeArtifact = nil
 	}
 	if resp.CpuConfigurations != nil {
-		f5 := []*svcapitypes.CPUConfiguration{}
-		for _, f5iter := range resp.CpuConfigurations {
-			f5elem := &svcapitypes.CPUConfiguration{}
-			if f5iter.Architecture != "" {
-				f5elem.Architecture = aws.String(string(f5iter.Architecture))
+		f4 := []*svcapitypes.CPUConfiguration{}
+		for _, f4iter := range resp.CpuConfigurations {
+			f4elem := &svcapitypes.CPUConfiguration{}
+			if f4iter.Architecture != "" {
+				f4elem.Architecture = aws.String(string(f4iter.Architecture))
 			}
-			f5 = append(f5, f5elem)
+			f4 = append(f4, f4elem)
 		}
-		ko.Spec.CPUConfigurations = f5
+		ko.Spec.CPUConfigurations = f4
 	} else {
 		ko.Spec.CPUConfigurations = nil
 	}
@@ -266,62 +264,62 @@ func (rm *resourceManager) sdkCreate(
 		ko.Spec.EnvironmentVariables = nil
 	}
 	if resp.Hooks != nil {
-		f10 := &svcapitypes.Hooks{}
+		f9 := &svcapitypes.Hooks{}
 		if resp.Hooks.MicrovmHooks != nil {
-			f10f0 := &svcapitypes.MicrovmHooks{}
+			f9f0 := &svcapitypes.MicrovmHooks{}
 			if resp.Hooks.MicrovmHooks.Resume != "" {
-				f10f0.Resume = aws.String(string(resp.Hooks.MicrovmHooks.Resume))
+				f9f0.Resume = aws.String(string(resp.Hooks.MicrovmHooks.Resume))
 			}
 			if resp.Hooks.MicrovmHooks.ResumeTimeoutInSeconds != nil {
 				resumeTimeoutInSecondsCopy := int64(*resp.Hooks.MicrovmHooks.ResumeTimeoutInSeconds)
-				f10f0.ResumeTimeoutInSeconds = &resumeTimeoutInSecondsCopy
+				f9f0.ResumeTimeoutInSeconds = &resumeTimeoutInSecondsCopy
 			}
 			if resp.Hooks.MicrovmHooks.Run != "" {
-				f10f0.Run = aws.String(string(resp.Hooks.MicrovmHooks.Run))
+				f9f0.Run = aws.String(string(resp.Hooks.MicrovmHooks.Run))
 			}
 			if resp.Hooks.MicrovmHooks.RunTimeoutInSeconds != nil {
 				runTimeoutInSecondsCopy := int64(*resp.Hooks.MicrovmHooks.RunTimeoutInSeconds)
-				f10f0.RunTimeoutInSeconds = &runTimeoutInSecondsCopy
+				f9f0.RunTimeoutInSeconds = &runTimeoutInSecondsCopy
 			}
 			if resp.Hooks.MicrovmHooks.Suspend != "" {
-				f10f0.Suspend = aws.String(string(resp.Hooks.MicrovmHooks.Suspend))
+				f9f0.Suspend = aws.String(string(resp.Hooks.MicrovmHooks.Suspend))
 			}
 			if resp.Hooks.MicrovmHooks.SuspendTimeoutInSeconds != nil {
 				suspendTimeoutInSecondsCopy := int64(*resp.Hooks.MicrovmHooks.SuspendTimeoutInSeconds)
-				f10f0.SuspendTimeoutInSeconds = &suspendTimeoutInSecondsCopy
+				f9f0.SuspendTimeoutInSeconds = &suspendTimeoutInSecondsCopy
 			}
 			if resp.Hooks.MicrovmHooks.Terminate != "" {
-				f10f0.Terminate = aws.String(string(resp.Hooks.MicrovmHooks.Terminate))
+				f9f0.Terminate = aws.String(string(resp.Hooks.MicrovmHooks.Terminate))
 			}
 			if resp.Hooks.MicrovmHooks.TerminateTimeoutInSeconds != nil {
 				terminateTimeoutInSecondsCopy := int64(*resp.Hooks.MicrovmHooks.TerminateTimeoutInSeconds)
-				f10f0.TerminateTimeoutInSeconds = &terminateTimeoutInSecondsCopy
+				f9f0.TerminateTimeoutInSeconds = &terminateTimeoutInSecondsCopy
 			}
-			f10.MicrovmHooks = f10f0
+			f9.MicrovmHooks = f9f0
 		}
 		if resp.Hooks.MicrovmImageHooks != nil {
-			f10f1 := &svcapitypes.MicrovmImageHooks{}
+			f9f1 := &svcapitypes.MicrovmImageHooks{}
 			if resp.Hooks.MicrovmImageHooks.Ready != "" {
-				f10f1.Ready = aws.String(string(resp.Hooks.MicrovmImageHooks.Ready))
+				f9f1.Ready = aws.String(string(resp.Hooks.MicrovmImageHooks.Ready))
 			}
 			if resp.Hooks.MicrovmImageHooks.ReadyTimeoutInSeconds != nil {
 				readyTimeoutInSecondsCopy := int64(*resp.Hooks.MicrovmImageHooks.ReadyTimeoutInSeconds)
-				f10f1.ReadyTimeoutInSeconds = &readyTimeoutInSecondsCopy
+				f9f1.ReadyTimeoutInSeconds = &readyTimeoutInSecondsCopy
 			}
 			if resp.Hooks.MicrovmImageHooks.Validate != "" {
-				f10f1.Validate = aws.String(string(resp.Hooks.MicrovmImageHooks.Validate))
+				f9f1.Validate = aws.String(string(resp.Hooks.MicrovmImageHooks.Validate))
 			}
 			if resp.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds != nil {
 				validateTimeoutInSecondsCopy := int64(*resp.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds)
-				f10f1.ValidateTimeoutInSeconds = &validateTimeoutInSecondsCopy
+				f9f1.ValidateTimeoutInSeconds = &validateTimeoutInSecondsCopy
 			}
-			f10.MicrovmImageHooks = f10f1
+			f9.MicrovmImageHooks = f9f1
 		}
 		if resp.Hooks.Port != nil {
 			portCopy := int64(*resp.Hooks.Port)
-			f10.Port = &portCopy
+			f9.Port = &portCopy
 		}
-		ko.Spec.Hooks = f10
+		ko.Spec.Hooks = f9
 	} else {
 		ko.Spec.Hooks = nil
 	}
@@ -341,28 +339,28 @@ func (rm *resourceManager) sdkCreate(
 		ko.Status.LatestFailedImageVersion = nil
 	}
 	if resp.Logging != nil {
-		f14 := &svcapitypes.Logging{}
+		f13 := &svcapitypes.Logging{}
 		switch resp.Logging.(type) {
 		case *svcsdktypes.LoggingMemberCloudWatch:
-			f14f0 := resp.Logging.(*svcsdktypes.LoggingMemberCloudWatch)
-			if f14f0 != nil {
-				f14f0f0 := &svcapitypes.CloudWatchLogging{}
-				if f14f0.Value.LogGroup != nil {
-					f14f0f0.LogGroup = f14f0.Value.LogGroup
+			f13f0 := resp.Logging.(*svcsdktypes.LoggingMemberCloudWatch)
+			if f13f0 != nil {
+				f13f0f0 := &svcapitypes.CloudWatchLogging{}
+				if f13f0.Value.LogGroup != nil {
+					f13f0f0.LogGroup = f13f0.Value.LogGroup
 				}
-				if f14f0.Value.LogStream != nil {
-					f14f0f0.LogStream = f14f0.Value.LogStream
+				if f13f0.Value.LogStream != nil {
+					f13f0f0.LogStream = f13f0.Value.LogStream
 				}
-				f14.CloudWatch = f14f0f0
+				f13.CloudWatch = f13f0f0
 			}
 		case *svcsdktypes.LoggingMemberDisabled:
-			f14f1 := resp.Logging.(*svcsdktypes.LoggingMemberDisabled)
-			if f14f1 != nil {
-				f14f1f1 := map[string]*string{}
-				f14.Disabled = f14f1f1
+			f13f1 := resp.Logging.(*svcsdktypes.LoggingMemberDisabled)
+			if f13f1 != nil {
+				f13f1f1 := map[string]*string{}
+				f13.Disabled = f13f1f1
 			}
 		}
-		ko.Spec.Logging = f14
+		ko.Spec.Logging = f13
 	} else {
 		ko.Spec.Logging = nil
 	}
@@ -372,16 +370,16 @@ func (rm *resourceManager) sdkCreate(
 		ko.Spec.Name = nil
 	}
 	if resp.Resources != nil {
-		f16 := []*svcapitypes.Resources{}
-		for _, f16iter := range resp.Resources {
-			f16elem := &svcapitypes.Resources{}
-			if f16iter.MinimumMemoryInMiB != nil {
-				minimumMemoryInMiBCopy := int64(*f16iter.MinimumMemoryInMiB)
-				f16elem.MinimumMemoryInMiB = &minimumMemoryInMiBCopy
+		f15 := []*svcapitypes.Resources{}
+		for _, f15iter := range resp.Resources {
+			f15elem := &svcapitypes.Resources{}
+			if f15iter.MinimumMemoryInMiB != nil {
+				minimumMemoryInMiBCopy := int64(*f15iter.MinimumMemoryInMiB)
+				f15elem.MinimumMemoryInMiB = &minimumMemoryInMiBCopy
 			}
-			f16 = append(f16, f16elem)
+			f15 = append(f15, f15elem)
 		}
-		ko.Spec.Resources = f16
+		ko.Spec.Resources = f15
 	} else {
 		ko.Spec.Resources = nil
 	}
@@ -629,6 +627,18 @@ func (rm *resourceManager) sdkUpdate(
 	defer func() {
 		exit(err)
 	}()
+	if delta.DifferentAt("Spec.Tags") {
+		if err := rm.syncTags(ctx, desired, latest); err != nil {
+			return nil, err
+		}
+	}
+	if !delta.DifferentExcept("Spec.Tags") {
+		// Tags-only change: already synced via TagResource/UntagResource
+		// above. Do NOT call UpdateMicrovmImage — it triggers a full image
+		// rebuild and cuts a new image version.
+		return desired, nil
+	}
+
 	if latest.ko.Status.State != nil {
 		if !ackutil.InStrings(*latest.ko.Status.State, []string{"CREATED", "UPDATED", "CREATE_FAILED", "UPDATE_FAILED"}) {
 			return nil, ackrequeue.NeededAfter(
@@ -671,39 +681,34 @@ func (rm *resourceManager) sdkUpdate(
 	} else {
 		ko.Spec.BaseImageARN = nil
 	}
-	if resp.BaseImageVersion != nil {
-		ko.Spec.BaseImageVersion = resp.BaseImageVersion
-	} else {
-		ko.Spec.BaseImageVersion = nil
-	}
 	if resp.BuildRoleArn != nil {
 		ko.Spec.BuildRoleARN = resp.BuildRoleArn
 	} else {
 		ko.Spec.BuildRoleARN = nil
 	}
 	if resp.CodeArtifact != nil {
-		f4 := &svcapitypes.CodeArtifact{}
+		f3 := &svcapitypes.CodeArtifact{}
 		switch resp.CodeArtifact.(type) {
 		case *svcsdktypes.CodeArtifactMemberUri:
-			f4f0 := resp.CodeArtifact.(*svcsdktypes.CodeArtifactMemberUri)
-			if f4f0 != nil {
-				f4.URI = &f4f0.Value
+			f3f0 := resp.CodeArtifact.(*svcsdktypes.CodeArtifactMemberUri)
+			if f3f0 != nil {
+				f3.URI = &f3f0.Value
 			}
 		}
-		ko.Spec.CodeArtifact = f4
+		ko.Spec.CodeArtifact = f3
 	} else {
 		ko.Spec.CodeArtifact = nil
 	}
 	if resp.CpuConfigurations != nil {
-		f5 := []*svcapitypes.CPUConfiguration{}
-		for _, f5iter := range resp.CpuConfigurations {
-			f5elem := &svcapitypes.CPUConfiguration{}
-			if f5iter.Architecture != "" {
-				f5elem.Architecture = aws.String(string(f5iter.Architecture))
+		f4 := []*svcapitypes.CPUConfiguration{}
+		for _, f4iter := range resp.CpuConfigurations {
+			f4elem := &svcapitypes.CPUConfiguration{}
+			if f4iter.Architecture != "" {
+				f4elem.Architecture = aws.String(string(f4iter.Architecture))
 			}
-			f5 = append(f5, f5elem)
+			f4 = append(f4, f4elem)
 		}
-		ko.Spec.CPUConfigurations = f5
+		ko.Spec.CPUConfigurations = f4
 	} else {
 		ko.Spec.CPUConfigurations = nil
 	}
@@ -728,62 +733,62 @@ func (rm *resourceManager) sdkUpdate(
 		ko.Spec.EnvironmentVariables = nil
 	}
 	if resp.Hooks != nil {
-		f10 := &svcapitypes.Hooks{}
+		f9 := &svcapitypes.Hooks{}
 		if resp.Hooks.MicrovmHooks != nil {
-			f10f0 := &svcapitypes.MicrovmHooks{}
+			f9f0 := &svcapitypes.MicrovmHooks{}
 			if resp.Hooks.MicrovmHooks.Resume != "" {
-				f10f0.Resume = aws.String(string(resp.Hooks.MicrovmHooks.Resume))
+				f9f0.Resume = aws.String(string(resp.Hooks.MicrovmHooks.Resume))
 			}
 			if resp.Hooks.MicrovmHooks.ResumeTimeoutInSeconds != nil {
 				resumeTimeoutInSecondsCopy := int64(*resp.Hooks.MicrovmHooks.ResumeTimeoutInSeconds)
-				f10f0.ResumeTimeoutInSeconds = &resumeTimeoutInSecondsCopy
+				f9f0.ResumeTimeoutInSeconds = &resumeTimeoutInSecondsCopy
 			}
 			if resp.Hooks.MicrovmHooks.Run != "" {
-				f10f0.Run = aws.String(string(resp.Hooks.MicrovmHooks.Run))
+				f9f0.Run = aws.String(string(resp.Hooks.MicrovmHooks.Run))
 			}
 			if resp.Hooks.MicrovmHooks.RunTimeoutInSeconds != nil {
 				runTimeoutInSecondsCopy := int64(*resp.Hooks.MicrovmHooks.RunTimeoutInSeconds)
-				f10f0.RunTimeoutInSeconds = &runTimeoutInSecondsCopy
+				f9f0.RunTimeoutInSeconds = &runTimeoutInSecondsCopy
 			}
 			if resp.Hooks.MicrovmHooks.Suspend != "" {
-				f10f0.Suspend = aws.String(string(resp.Hooks.MicrovmHooks.Suspend))
+				f9f0.Suspend = aws.String(string(resp.Hooks.MicrovmHooks.Suspend))
 			}
 			if resp.Hooks.MicrovmHooks.SuspendTimeoutInSeconds != nil {
 				suspendTimeoutInSecondsCopy := int64(*resp.Hooks.MicrovmHooks.SuspendTimeoutInSeconds)
-				f10f0.SuspendTimeoutInSeconds = &suspendTimeoutInSecondsCopy
+				f9f0.SuspendTimeoutInSeconds = &suspendTimeoutInSecondsCopy
 			}
 			if resp.Hooks.MicrovmHooks.Terminate != "" {
-				f10f0.Terminate = aws.String(string(resp.Hooks.MicrovmHooks.Terminate))
+				f9f0.Terminate = aws.String(string(resp.Hooks.MicrovmHooks.Terminate))
 			}
 			if resp.Hooks.MicrovmHooks.TerminateTimeoutInSeconds != nil {
 				terminateTimeoutInSecondsCopy := int64(*resp.Hooks.MicrovmHooks.TerminateTimeoutInSeconds)
-				f10f0.TerminateTimeoutInSeconds = &terminateTimeoutInSecondsCopy
+				f9f0.TerminateTimeoutInSeconds = &terminateTimeoutInSecondsCopy
 			}
-			f10.MicrovmHooks = f10f0
+			f9.MicrovmHooks = f9f0
 		}
 		if resp.Hooks.MicrovmImageHooks != nil {
-			f10f1 := &svcapitypes.MicrovmImageHooks{}
+			f9f1 := &svcapitypes.MicrovmImageHooks{}
 			if resp.Hooks.MicrovmImageHooks.Ready != "" {
-				f10f1.Ready = aws.String(string(resp.Hooks.MicrovmImageHooks.Ready))
+				f9f1.Ready = aws.String(string(resp.Hooks.MicrovmImageHooks.Ready))
 			}
 			if resp.Hooks.MicrovmImageHooks.ReadyTimeoutInSeconds != nil {
 				readyTimeoutInSecondsCopy := int64(*resp.Hooks.MicrovmImageHooks.ReadyTimeoutInSeconds)
-				f10f1.ReadyTimeoutInSeconds = &readyTimeoutInSecondsCopy
+				f9f1.ReadyTimeoutInSeconds = &readyTimeoutInSecondsCopy
 			}
 			if resp.Hooks.MicrovmImageHooks.Validate != "" {
-				f10f1.Validate = aws.String(string(resp.Hooks.MicrovmImageHooks.Validate))
+				f9f1.Validate = aws.String(string(resp.Hooks.MicrovmImageHooks.Validate))
 			}
 			if resp.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds != nil {
 				validateTimeoutInSecondsCopy := int64(*resp.Hooks.MicrovmImageHooks.ValidateTimeoutInSeconds)
-				f10f1.ValidateTimeoutInSeconds = &validateTimeoutInSecondsCopy
+				f9f1.ValidateTimeoutInSeconds = &validateTimeoutInSecondsCopy
 			}
-			f10.MicrovmImageHooks = f10f1
+			f9.MicrovmImageHooks = f9f1
 		}
 		if resp.Hooks.Port != nil {
 			portCopy := int64(*resp.Hooks.Port)
-			f10.Port = &portCopy
+			f9.Port = &portCopy
 		}
-		ko.Spec.Hooks = f10
+		ko.Spec.Hooks = f9
 	} else {
 		ko.Spec.Hooks = nil
 	}
@@ -803,28 +808,28 @@ func (rm *resourceManager) sdkUpdate(
 		ko.Status.LatestFailedImageVersion = nil
 	}
 	if resp.Logging != nil {
-		f15 := &svcapitypes.Logging{}
+		f14 := &svcapitypes.Logging{}
 		switch resp.Logging.(type) {
 		case *svcsdktypes.LoggingMemberCloudWatch:
-			f15f0 := resp.Logging.(*svcsdktypes.LoggingMemberCloudWatch)
-			if f15f0 != nil {
-				f15f0f0 := &svcapitypes.CloudWatchLogging{}
-				if f15f0.Value.LogGroup != nil {
-					f15f0f0.LogGroup = f15f0.Value.LogGroup
+			f14f0 := resp.Logging.(*svcsdktypes.LoggingMemberCloudWatch)
+			if f14f0 != nil {
+				f14f0f0 := &svcapitypes.CloudWatchLogging{}
+				if f14f0.Value.LogGroup != nil {
+					f14f0f0.LogGroup = f14f0.Value.LogGroup
 				}
-				if f15f0.Value.LogStream != nil {
-					f15f0f0.LogStream = f15f0.Value.LogStream
+				if f14f0.Value.LogStream != nil {
+					f14f0f0.LogStream = f14f0.Value.LogStream
 				}
-				f15.CloudWatch = f15f0f0
+				f14.CloudWatch = f14f0f0
 			}
 		case *svcsdktypes.LoggingMemberDisabled:
-			f15f1 := resp.Logging.(*svcsdktypes.LoggingMemberDisabled)
-			if f15f1 != nil {
-				f15f1f1 := map[string]*string{}
-				f15.Disabled = f15f1f1
+			f14f1 := resp.Logging.(*svcsdktypes.LoggingMemberDisabled)
+			if f14f1 != nil {
+				f14f1f1 := map[string]*string{}
+				f14.Disabled = f14f1f1
 			}
 		}
-		ko.Spec.Logging = f15
+		ko.Spec.Logging = f14
 	} else {
 		ko.Spec.Logging = nil
 	}
@@ -834,16 +839,16 @@ func (rm *resourceManager) sdkUpdate(
 		ko.Spec.Name = nil
 	}
 	if resp.Resources != nil {
-		f17 := []*svcapitypes.Resources{}
-		for _, f17iter := range resp.Resources {
-			f17elem := &svcapitypes.Resources{}
-			if f17iter.MinimumMemoryInMiB != nil {
-				minimumMemoryInMiBCopy := int64(*f17iter.MinimumMemoryInMiB)
-				f17elem.MinimumMemoryInMiB = &minimumMemoryInMiBCopy
+		f16 := []*svcapitypes.Resources{}
+		for _, f16iter := range resp.Resources {
+			f16elem := &svcapitypes.Resources{}
+			if f16iter.MinimumMemoryInMiB != nil {
+				minimumMemoryInMiBCopy := int64(*f16iter.MinimumMemoryInMiB)
+				f16elem.MinimumMemoryInMiB = &minimumMemoryInMiBCopy
 			}
-			f17 = append(f17, f17elem)
+			f16 = append(f16, f16elem)
 		}
-		ko.Spec.Resources = f17
+		ko.Spec.Resources = f16
 	} else {
 		ko.Spec.Resources = nil
 	}
