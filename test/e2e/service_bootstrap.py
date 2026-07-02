@@ -18,11 +18,14 @@ Prerequisites created:
   - IAM build role trusted by lambda.amazonaws.com (via acktest Role)
   - IAM execution role trusted by lambda.amazonaws.com (via acktest Role)
   - Test code artifact (app.js + Dockerfile) uploaded to S3
+  - Two MicrovmImages created directly via the AWS API (adoption test targets,
+    one per adoption test so they run independently under pytest-xdist)
 """
 
 import logging
 import os
 import tempfile
+import time
 import zipfile
 
 import boto3
@@ -31,12 +34,16 @@ from acktest.bootstrapping import Resources, BootstrapFailureException
 from acktest.bootstrapping.iam import Role
 from acktest.bootstrapping.s3 import Bucket
 from acktest.aws.identity import get_region
+from acktest.resources import random_suffix_name
 
 from e2e import bootstrap_directory
 from e2e.bootstrap_resources import BootstrapResources
 
 REGION = get_region()
 BASE_IMAGE_ARN = f"arn:aws:lambda:{REGION}:aws:microvm-image:al2023-1"
+
+ADOPTION_IMAGE_CREATE_TIMEOUT_SECONDS = 600
+ADOPTION_IMAGE_POLL_INTERVAL_SECONDS = 15
 
 APP_JS = """\
 const http = require('http');
@@ -72,6 +79,57 @@ def _upload_code_artifact(bucket_name):
     return f"s3://{bucket_name}/{key}"
 
 
+def _start_adoption_image(client, name_prefix, build_role_arn, code_artifact_uri):
+    """Start an out-of-band MicrovmImage build (does not wait). Returns
+    (name, arn); the build is asynchronous.
+    """
+    name = random_suffix_name(name_prefix, 32)
+    logging.info("Creating adoption target MicrovmImage %s", name)
+    resp = client.create_microvm_image(
+        name=name,
+        baseImageArn=BASE_IMAGE_ARN,
+        buildRoleArn=build_role_arn,
+        codeArtifact={"uri": code_artifact_uri},
+    )
+    return name, resp["imageArn"]
+
+
+def _wait_adoption_image(client, name, arn):
+    """Poll an adoption target image until it leaves CREATING, failing the
+    bootstrap if it does not reach CREATED.
+    """
+    deadline = time.time() + ADOPTION_IMAGE_CREATE_TIMEOUT_SECONDS
+    state = "CREATING"
+    while time.time() < deadline:
+        state = client.get_microvm_image(imageIdentifier=arn)["state"]
+        if state != "CREATING":
+            break
+        time.sleep(ADOPTION_IMAGE_POLL_INTERVAL_SECONDS)
+
+    if state != "CREATED":
+        logging.error("Adoption target image %s ended in state %s", name, state)
+        raise BootstrapFailureException()
+
+    logging.info("Adoption target MicrovmImage %s is CREATED (%s)", name, arn)
+
+
+def _create_adoption_images(build_role_arn, code_artifact_uri):
+    """Create the per-test adoption target images. Both builds are started
+    first, then awaited, so bootstrap pays one build window (~3 min) rather
+    than one per image.
+    """
+    client = boto3.client("lambda-microvms", region_name=REGION)
+    policy_name, policy_arn = _start_adoption_image(
+        client, "ack-adopt-policy", build_role_arn, code_artifact_uri)
+    tags_name, tags_arn = _start_adoption_image(
+        client, "ack-adopt-tags", build_role_arn, code_artifact_uri)
+
+    _wait_adoption_image(client, policy_name, policy_arn)
+    _wait_adoption_image(client, tags_name, tags_arn)
+
+    return policy_name, policy_arn, tags_name, tags_arn
+
+
 def service_bootstrap() -> Resources:
     logging.getLogger().setLevel(logging.INFO)
 
@@ -102,6 +160,19 @@ def service_bootstrap() -> Resources:
 
     logging.info("Uploading code artifact to s3://%s/e2e-test-app.zip", resources.CodeArtifactBucket.name)
     resources.CodeArtifactURI = _upload_code_artifact(resources.CodeArtifactBucket.name)
+
+    try:
+        (
+            resources.AdoptPolicyImageName,
+            resources.AdoptPolicyImageARN,
+            resources.AdoptTagsImageName,
+            resources.AdoptTagsImageARN,
+        ) = _create_adoption_images(
+            resources.BuildRole.arn, resources.CodeArtifactURI,
+        )
+    except BootstrapFailureException:
+        resources.cleanup()
+        exit(254)
 
     return resources
 

@@ -29,6 +29,8 @@ UPDATE_TIMEOUT_SECONDS = 360
 POLL_INTERVAL_SECONDS = 15
 DELETE_WAIT_PERIODS = 8
 DELETE_PERIOD_LENGTH = 15
+TAG_POLL_MAX_RETRIES = 12
+TAG_POLL_INTERVAL_SECONDS = 5
 
 def _wait_for_state(ref, target_states, timeout):
     """Poll until status.state reaches one of the target values."""
@@ -111,3 +113,42 @@ class TestMicrovmImage:
         arn = cr["status"]["ackResourceMetadata"]["arn"]
         aws_resp = lambdamicrovms_client.get_microvm_image(imageIdentifier=arn)
         assert aws_resp["state"] in ("CREATED", "UPDATED"), f"AWS state after update: {aws_resp['state']}"
+
+    def test_update_tags_no_rebuild(self, simple_microvm_image, lambdamicrovms_client):
+        """Changing tags must sync via TagResource/UntagResource and must NOT
+        trigger an image rebuild (UpdateMicrovmImage cuts a new image version).
+        """
+        (ref, _) = simple_microvm_image
+
+        # The image build is asynchronous; wait for it to finish before tagging
+        # so this test is self-sufficient regardless of execution order.
+        cr = _wait_for_state(ref, ["CREATED", "UPDATED", "CREATE_FAILED"], CREATE_TIMEOUT_SECONDS)
+        arn = cr["status"]["ackResourceMetadata"]["arn"]
+        before = lambdamicrovms_client.get_microvm_image(imageIdentifier=arn)
+        version_before = before.get("latestActiveImageVersion")
+        assert before["state"] in ("CREATED", "UPDATED"), f"image not built, state={before['state']}"
+
+        updates = {"spec": {"tags": {"e2e-tag-test": "v1"}}}
+        k8s.patch_custom_resource(ref, updates)
+
+        assert k8s.wait_on_condition(ref, "ACK.ResourceSynced", "True", wait_periods=5), \
+            "resource did not reach ACK.ResourceSynced=True after tag update"
+
+        # Tag must land on the AWS side via TagResource (eventually consistent)
+        aws_tags = {}
+        for _ in range(TAG_POLL_MAX_RETRIES):
+            aws_tags = lambdamicrovms_client.list_tags(Resource=arn).get("Tags", {})
+            if aws_tags.get("e2e-tag-test") == "v1":
+                break
+            time.sleep(TAG_POLL_INTERVAL_SECONDS)
+        assert aws_tags.get("e2e-tag-test") == "v1", f"tag not synced to AWS, got {aws_tags}"
+
+        # ACK default tags prove EnsureTags works through the TagResource path
+        assert "services.k8s.aws/controller-version" in aws_tags
+        assert "services.k8s.aws/namespace" in aws_tags
+
+        # No rebuild: same active version, never went back to UPDATING
+        after = lambdamicrovms_client.get_microvm_image(imageIdentifier=arn)
+        assert after.get("latestActiveImageVersion") == version_before, \
+            f"tag change rebuilt the image: version {version_before} -> {after.get('latestActiveImageVersion')}"
+        assert after["state"] in ("CREATED", "UPDATED"), f"unexpected state {after['state']}"
