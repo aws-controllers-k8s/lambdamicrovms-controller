@@ -100,19 +100,47 @@ class TestMicrovmImage:
         assert aws_resp["state"] in ("CREATED", "UPDATED"), f"AWS state: {aws_resp['state']}"
 
     def test_update(self, simple_microvm_image, lambdamicrovms_client):
+        """Patching a build-config field (description) must actually reconcile:
+        the image rebuilds into a new version carrying the new value.
+
+        Note: description lives on the image VERSION, not the image, and
+        GetMicrovmImage does not return it. An earlier version of this test
+        only asserted status.state was CREATED/UPDATED and dual-verified via
+        get_microvm_image — both of which stay true even when the update is
+        silently dropped, so it passed without ever confirming the change
+        reached AWS. This version verifies the full round-trip instead.
+        """
         (ref, _) = simple_microvm_image
 
-        updates = {"spec": {"description": "updated by ack e2e test"}}
-        k8s.patch_custom_resource(ref, updates)
-
-        cr = _wait_for_state(ref, ["CREATED", "UPDATED", "UPDATE_FAILED"], UPDATE_TIMEOUT_SECONDS)
-        state = cr["status"]["state"]
-        assert state in ("CREATED", "UPDATED"), f"Expected CREATED/UPDATED, got {state}"
-
-        # AWS API dual-verification
+        # Ensure the image finished building first (order-independent), and
+        # capture the active version so we can prove a new one is cut.
+        cr = _wait_for_state(ref, ["CREATED", "UPDATED", "CREATE_FAILED"], CREATE_TIMEOUT_SECONDS)
+        assert cr["status"]["state"] in ("CREATED", "UPDATED"), \
+            f"image not built, state={cr['status']['state']}"
         arn = cr["status"]["ackResourceMetadata"]["arn"]
-        aws_resp = lambdamicrovms_client.get_microvm_image(imageIdentifier=arn)
-        assert aws_resp["state"] in ("CREATED", "UPDATED"), f"AWS state after update: {aws_resp['state']}"
+        version_before = cr["status"].get("latestActiveImageVersion")
+
+        # Unique per run so it can never accidentally match a pre-existing value.
+        description = random_suffix_name("ack-e2e-desc", 40)
+        k8s.patch_custom_resource(ref, {"spec": {"description": description}})
+
+        # A real update transitions to UPDATED (not merely "still CREATED").
+        cr = _wait_for_state(ref, ["UPDATED", "UPDATE_FAILED"], UPDATE_TIMEOUT_SECONDS)
+        assert cr["status"]["state"] == "UPDATED", \
+            f"Expected UPDATED after description change, got {cr['status']['state']}"
+
+        # A new image version must have been cut (proves an actual rebuild).
+        version_after = cr["status"].get("latestActiveImageVersion")
+        assert version_after != version_before, \
+            f"expected a new active version, still {version_after}"
+
+        # The description must be present on the new version in AWS. This is the
+        # assertion the old test lacked: it reads the VERSION, not the image.
+        ver = lambdamicrovms_client.get_microvm_image_version(
+            imageIdentifier=arn, imageVersion=version_after,
+        )
+        assert ver.get("description") == description, \
+            f"description not applied to version {version_after}: {ver.get('description')!r}"
 
     def test_update_tags_no_rebuild(self, simple_microvm_image, lambdamicrovms_client):
         """Changing tags must sync via TagResource/UntagResource and must NOT

@@ -137,7 +137,7 @@ func (rm *resourceManager) sdkFind(
 		arn := ackv1alpha1.AWSResourceName(*resp.ImageArn)
 		ko.Status.ACKResourceMetadata.ARN = &arn
 	}
-	if err := rm.enrichSpecFromActiveVersion(ctx, ko); err != nil {
+	if err := rm.refreshSpecFromActiveVersion(ctx, ko); err != nil {
 		return nil, err
 	}
 

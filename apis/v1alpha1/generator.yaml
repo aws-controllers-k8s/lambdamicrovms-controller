@@ -82,6 +82,17 @@ resources:
           resource: Role
           path: Status.ACKResourceMetadata.ARN
           service_name: iam
+      # AWS defaults these two when omitted (egress -> [INTERNET_EGRESS],
+      # resources -> [{minimumMemoryInMiB: 2048}]). refreshSpecFromActiveVersion
+      # mirrors the AWS-side value into `latest`; late_initialize back-fills the
+      # same value into desired so the server default does not read as perpetual
+      # drift and trigger endless rebuilds.
+      EgressNetworkConnectors:
+        late_initialize:
+          skip_incomplete_check: {}
+      Resources:
+        late_initialize:
+          skip_incomplete_check: {}
     hooks:
       sdk_create_post_set_output:
         template_path: hooks/microvm_image/sdk_create_post_set_output.go.tpl

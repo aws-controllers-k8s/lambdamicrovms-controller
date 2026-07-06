@@ -50,7 +50,7 @@ var (
 // +kubebuilder:rbac:groups=lambdamicrovms.services.k8s.aws,resources=microvmimages,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=lambdamicrovms.services.k8s.aws,resources=microvmimages/status,verbs=get;update;patch
 
-var lateInitializeFieldNames = []string{}
+var lateInitializeFieldNames = []string{"EgressNetworkConnectors", "Resources"}
 
 // resourceManager is responsible for providing a consistent way to perform
 // CRUD operations in a backend AWS service API for Book custom resources.
@@ -260,7 +260,15 @@ func (rm *resourceManager) lateInitializeFromReadOneOutput(
 	observed acktypes.AWSResource,
 	latest acktypes.AWSResource,
 ) acktypes.AWSResource {
-	return latest
+	observedKo := rm.concreteResource(observed).ko.DeepCopy()
+	latestKo := rm.concreteResource(latest).ko.DeepCopy()
+	if observedKo.Spec.EgressNetworkConnectors != nil && latestKo.Spec.EgressNetworkConnectors == nil {
+		latestKo.Spec.EgressNetworkConnectors = observedKo.Spec.EgressNetworkConnectors
+	}
+	if observedKo.Spec.Resources != nil && latestKo.Spec.Resources == nil {
+		latestKo.Spec.Resources = observedKo.Spec.Resources
+	}
+	return &resource{latestKo}
 }
 
 // IsSynced returns true if the resource is synced.
