@@ -102,3 +102,49 @@ class TestMicrovm:
         # AWS API dual-verification
         aws_resp = lambdamicrovms_client.get_microvm(microvmIdentifier=microvm_id)
         assert aws_resp["state"] in ("RUNNING", "SUSPENDING", "SUSPENDED"), f"AWS state: {aws_resp['state']}"
+
+    def test_delete_removes_finalizer(self, microvm_image_arn, lambdamicrovms_client):
+        """Deleting a Microvm must fully remove the CR (finalizer dropped), even
+        though AWS retains terminated VMs.
+
+        Regression guard: GetMicrovm never returns NotFound for a terminated VM
+        (AWS keeps them queryable indefinitely), and the deletable guard rejects
+        the TERMINATED state ("resource is in TERMINATED state, cannot be
+        deleted"). Without the sdk_delete_pre_build_request short-circuit, the
+        runtime would requeue forever waiting for a NotFound that never comes and
+        the finalizer would never be removed. This exercises both a
+        controller-initiated terminate and the terminal-state cleanup path.
+        """
+        resource_name = random_suffix_name("ack-vm-del", 24)
+        resources = get_bootstrap_resources()
+        execution_role_arn = resources.ExecutionRole.arn if resources.ExecutionRole else ""
+
+        replacements = {
+            "RESOURCE_NAME": resource_name,
+            "IMAGE_IDENTIFIER": microvm_image_arn,
+            "EXECUTION_ROLE_ARN": execution_role_arn,
+            "AWS_REGION": get_region(),
+        }
+        resource_data = load_lambdamicrovms_resource(
+            "microvm", additional_replacements=replacements
+        )
+        ref = k8s.CustomResourceReference(
+            CRD_GROUP, CRD_VERSION, RESOURCE_PLURAL,
+            resource_name, namespace="default",
+        )
+        k8s.create_custom_resource(ref, resource_data)
+        k8s.wait_resource_consumed_by_controller(ref)
+
+        cr = _wait_for_state(ref, ["RUNNING", "TERMINATED"], CREATE_TIMEOUT_SECONDS)
+        assert cr["status"]["state"] in ("RUNNING", "TERMINATED"), \
+            f"vm not ready, state={cr['status']['state']}"
+
+        # Delete and require the CR to actually disappear. delete_custom_resource
+        # blocks until the object is gone from the API server, which only happens
+        # once the finalizer is removed — i.e. this fails (times out) if the
+        # delete wedges on the TERMINATED state.
+        _, deleted = k8s.delete_custom_resource(
+            ref, wait_periods=DELETE_WAIT_PERIODS, period_length=DELETE_PERIOD_LENGTH
+        )
+        assert deleted, "Microvm CR was not removed — finalizer likely stuck on TERMINATED state"
+        assert not k8s.get_resource_exists(ref), "Microvm CR still exists after delete"
