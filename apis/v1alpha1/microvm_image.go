@@ -102,6 +102,11 @@ type MicrovmImageStatus struct {
 	// Regex Pattern: `^[^\s]+$`
 	// +kubebuilder:validation:Optional
 	LatestFailedImageVersion *string `json:"latestFailedImageVersion,omitempty"`
+	// The specific version of the base MicroVM image.
+	//
+	// Regex Pattern: `^[^\s]+$`
+	// +kubebuilder:validation:Optional
+	ResolvedBaseImageVersion *string `json:"resolvedBaseImageVersion,omitempty"`
 	// The current state of the MicroVM image.
 	// +kubebuilder:validation:Optional
 	State *string `json:"state,omitempty"`

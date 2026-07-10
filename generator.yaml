@@ -11,12 +11,14 @@ ignore:
     # create/read hooks), so drop it from the CRD to keep it out of the
     # public API.
     - CreateMicrovmImageOutput.ImageArn
-    # baseImageVersion is an optional build input ("use latest" when omitted),
-    # but Create/Update responses echo a resolved "0.0" that the update
-    # request validator then rejects. Dropping it from the create/update
-    # OUTPUT stops the controller from persisting "0.0" into spec and
-    # re-sending it on the next update (which wedges the resource). It stays a
-    # user-settable Spec field via the create INPUT shape.
+    # baseImageVersion is an optional build input ("use latest" when omitted).
+    # The user chooses only the MINOR component (e.g. "0"); the builder owns
+    # the patch. Create/Update responses echo a resolved MINOR.PATCH ("0.0")
+    # that the update request validator then rejects. Dropping it from the
+    # create/update OUTPUT stops the controller from persisting "0.0" into spec
+    # and re-sending it on the next update (which wedges the resource). It
+    # stays a user-settable Spec field via the create INPUT shape, and the
+    # resolved value is surfaced read-only in status.resolvedBaseImageVersion.
     - CreateMicrovmImageOutput.BaseImageVersion
     - UpdateMicrovmImageOutput.BaseImageVersion
 
@@ -82,6 +84,16 @@ resources:
           resource: Role
           path: Status.ACKResourceMetadata.ARN
           service_name: iam
+      # Read-only reflection of the fully-resolved base image version
+      # (MINOR.PATCH, e.g. "0.0"). spec.baseImageVersion carries the
+      # user-chosen MINOR only; the builder owns the patch, so the resolved
+      # value is surfaced here in status. Populated in
+      # refreshSpecFromActiveVersion from GetMicrovmImageVersion.
+      ResolvedBaseImageVersion:
+        is_read_only: true
+        from:
+          operation: GetMicrovmImageVersion
+          path: BaseImageVersion
       # AWS defaults these two when omitted (egress -> [INTERNET_EGRESS],
       # resources -> [{minimumMemoryInMiB: 2048}]). refreshSpecFromActiveVersion
       # mirrors the AWS-side value into `latest`; late_initialize back-fills the
@@ -94,12 +106,16 @@ resources:
         late_initialize:
           skip_incomplete_check: {}
     hooks:
+      sdk_create_post_build_request:
+        template_path: hooks/microvm_image/sdk_create_post_build_request.go.tpl
       sdk_create_post_set_output:
         template_path: hooks/microvm_image/sdk_create_post_set_output.go.tpl
       sdk_read_one_post_set_output:
         template_path: hooks/microvm_image/sdk_read_one_post_set_output.go.tpl
       sdk_update_pre_build_request:
         template_path: hooks/microvm_image/sdk_update_pre_build_request.go.tpl
+      sdk_update_post_build_request:
+        template_path: hooks/microvm_image/sdk_update_post_build_request.go.tpl
 
   Microvm:
     renames:

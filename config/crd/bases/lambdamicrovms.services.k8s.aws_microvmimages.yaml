@@ -320,6 +320,12 @@ spec:
 
                   Regex Pattern: `^[^\s]+$`
                 type: string
+              resolvedBaseImageVersion:
+                description: |-
+                  The specific version of the base MicroVM image.
+
+                  Regex Pattern: `^[^\s]+$`
+                type: string
               state:
                 description: The current state of the MicroVM image.
                 type: string

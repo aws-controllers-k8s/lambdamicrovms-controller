@@ -95,9 +95,46 @@ class TestMicrovmImage:
         assert arn is not None, "ARN not set in ackResourceMetadata"
         assert cr["status"].get("imageVersion") is not None, "imageVersion not set"
 
+        # The resolved base image version (MINOR.PATCH the builder picked, e.g.
+        # "0.0") is surfaced read-only in status, sourced from the active
+        # version. It must be populated once the image has an active version,
+        # and must NOT round-trip into spec.baseImageVersion (which stays the
+        # user's MINOR-only intent, unset here).
+        resolved = cr["status"].get("resolvedBaseImageVersion")
+        assert resolved is not None, "resolvedBaseImageVersion not set in status"
+        assert cr.get("spec", {}).get("baseImageVersion") is None, \
+            f"resolved value leaked into spec.baseImageVersion: {cr['spec'].get('baseImageVersion')!r}"
+
         # AWS API dual-verification
         aws_resp = lambdamicrovms_client.get_microvm_image(imageIdentifier=arn)
         assert aws_resp["state"] in ("CREATED", "UPDATED"), f"AWS state: {aws_resp['state']}"
+
+    def test_base_image_version_sanitized(self, simple_microvm_image, lambdamicrovms_client):
+        """A user may paste the resolved MINOR.PATCH they saw (e.g. "0.0") into
+        spec.baseImageVersion. The Update validator rejects "0.0" (it wants the
+        bare MINOR "0"), which previously wedged the resource. The controller
+        must strip the patch on the request side so the update still converges,
+        while leaving spec untouched.
+        """
+        (ref, _) = simple_microvm_image
+
+        # Make sure the image is built before driving an update.
+        cr = _wait_for_state(ref, ["CREATED", "UPDATED", "CREATE_FAILED"], CREATE_TIMEOUT_SECONDS)
+        assert cr["status"]["state"] in ("CREATED", "UPDATED"), \
+            f"image not built, state={cr['status']['state']}"
+
+        # Patch spec.baseImageVersion with the full MINOR.PATCH form. Without
+        # sanitization this would loop on "Invalid baseMicroVMImageVersion: 0.0"
+        # and never reach Synced=True.
+        k8s.patch_custom_resource(ref, {"spec": {"baseImageVersion": "0.0"}})
+
+        assert k8s.wait_on_condition(ref, "ACK.ResourceSynced", "True", wait_periods=8), \
+            "resource did not reach ACK.ResourceSynced=True after baseImageVersion=0.0 " \
+            "(sanitization likely not applied — request wedged on Invalid baseMicroVMImageVersion)"
+
+        cr = k8s.get_resource(ref)
+        assert cr["status"]["state"] in ("CREATED", "UPDATED"), \
+            f"unexpected state after baseImageVersion patch: {cr['status']['state']}"
 
     def test_update(self, simple_microvm_image, lambdamicrovms_client):
         """Patching a build-config field (description) must actually reconcile:

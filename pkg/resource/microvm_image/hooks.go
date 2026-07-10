@@ -15,6 +15,7 @@ package microvm_image
 
 import (
 	"context"
+	"strings"
 
 	ackrtlog "github.com/aws-controllers-k8s/runtime/pkg/runtime/log"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -98,9 +99,11 @@ func (rm *resourceManager) syncTags(
 // by issuing UpdateMicrovmImage (a rebuild). Skipped only when the image has no
 // successfully built version to read from yet.
 //
-// BaseImageVersion is deliberately NOT refreshed: the read API reports a
-// resolved minor version ("0.0") that UpdateMicrovmImage rejects (it expects a
-// bare major like "1"), so round-tripping it into Spec would wedge every update.
+// BaseImageVersion is deliberately NOT written back to Spec: the read API
+// reports a resolved MINOR.PATCH ("0.0") that UpdateMicrovmImage rejects (it
+// expects the bare MINOR like "0"), so round-tripping it into Spec would wedge
+// every update. Instead the resolved value is surfaced read-only in
+// Status.ResolvedBaseImageVersion so users can see the effective version.
 func (rm *resourceManager) refreshSpecFromActiveVersion(
 	ctx context.Context,
 	ko *svcapitypes.MicrovmImage,
@@ -122,9 +125,13 @@ func (rm *resourceManager) refreshSpecFromActiveVersion(
 		return err
 	}
 
+	// Surface the resolved MINOR.PATCH base image version read-only in Status.
+	// This must NOT go into Spec (see doc comment) — it is observation only.
+	ko.Status.ResolvedBaseImageVersion = resp.BaseImageVersion
+
 	// Mirror every build-config field from the active version into Spec. Nil
 	// responses assign nil, which is the intended "field is unset on AWS"
-	// state. BaseImageVersion is intentionally absent (see doc comment).
+	// state. Spec.BaseImageVersion is intentionally absent (see doc comment).
 	ko.Spec.BaseImageARN = resp.BaseImageArn
 	ko.Spec.BuildRoleARN = resp.BuildRoleArn
 	ko.Spec.Description = resp.Description
@@ -138,6 +145,27 @@ func (rm *resourceManager) refreshSpecFromActiveVersion(
 	ko.Spec.Resources = resourcesFromSDK(resp.Resources)
 
 	return nil
+}
+
+// sanitizeBaseImageVersion normalizes a user-supplied baseImageVersion to the
+// bare MINOR component the UpdateMicrovmImage/CreateMicrovmImage validator
+// accepts. The service format is MINOR.PATCH and customers may only choose the
+// MINOR (the builder always uses the latest patch), but reads and responses
+// reflect the resolved MINOR.PATCH (e.g. "0.0"). A user who pastes that back
+// into spec would otherwise wedge the resource, since the request validator
+// rejects "0.0". Stripping everything from the first '.' onward keeps requests
+// valid while leaving spec.baseImageVersion untouched (observation of the
+// resolved value lives in status.resolvedBaseImageVersion). Nil and
+// already-bare values pass through unchanged.
+func sanitizeBaseImageVersion(v *string) *string {
+	if v == nil {
+		return nil
+	}
+	if idx := strings.Index(*v, "."); idx >= 0 {
+		minor := (*v)[:idx]
+		return &minor
+	}
+	return v
 }
 
 // capabilitiesFromSDK maps the SDK Capability enum slice to the Spec's

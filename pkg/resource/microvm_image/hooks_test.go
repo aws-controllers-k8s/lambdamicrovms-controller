@@ -58,6 +58,39 @@ func TestUpdateRequestPassesBaseImageVersionWhenUserSet(t *testing.T) {
 	}
 }
 
+// TestSanitizeBaseImageVersion guards the request-side normalization: a user
+// may put the resolved MINOR.PATCH they saw (e.g. "0.0") into spec, but the
+// Create/Update validator only accepts the bare MINOR ("0"). The sanitizer
+// strips the patch before the request goes out; nil and already-bare values
+// pass through unchanged.
+func TestSanitizeBaseImageVersion(t *testing.T) {
+	cases := []struct {
+		name string
+		in   *string
+		want *string
+	}{
+		{"nil", nil, nil},
+		{"empty", aws.String(""), aws.String("")},
+		{"bare minor", aws.String("1"), aws.String("1")},
+		{"minor.patch", aws.String("0.0"), aws.String("0")},
+		{"nonzero minor.patch", aws.String("1.2"), aws.String("1")},
+		{"multi dot", aws.String("2.3.4"), aws.String("2")},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := sanitizeBaseImageVersion(tc.in)
+			switch {
+			case tc.want == nil && got != nil:
+				t.Errorf("got %q, want nil", *got)
+			case tc.want != nil && got == nil:
+				t.Errorf("got nil, want %q", *tc.want)
+			case tc.want != nil && got != nil && *got != *tc.want:
+				t.Errorf("got %q, want %q", *got, *tc.want)
+			}
+		})
+	}
+}
+
 // The tests below cover the pure mapping helpers used by
 // refreshSpecFromActiveVersion. The nil->nil contract is the load-bearing
 // invariant: refreshSpecFromActiveVersion overwrites Spec from the version
