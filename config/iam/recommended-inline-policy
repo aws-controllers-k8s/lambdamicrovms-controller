@@ -8,6 +8,7 @@
 				"lambda:UpdateMicrovmImage",
 				"lambda:DeleteMicrovmImage",
 				"lambda:GetMicrovmImage",
+				"lambda:GetMicrovmImageVersion",
 				"lambda:ListMicrovmImages",
 				"lambda:RunMicrovm",
 				"lambda:GetMicrovm",
