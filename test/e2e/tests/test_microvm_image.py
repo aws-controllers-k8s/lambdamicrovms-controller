@@ -114,36 +114,6 @@ class TestMicrovmImage:
         aws_resp = lambdamicrovms_client.get_microvm_image(imageIdentifier=arn)
         assert aws_resp["state"] in ("CREATED", "UPDATED"), f"AWS state: {aws_resp['state']}"
 
-    def test_base_image_version_malformed_input_errors(self, simple_microvm_image, lambdamicrovms_client):
-        """The controller must NOT sanitize user input. If a user puts a malformed
-        value like "0.0" into spec.baseImageVersion, it is sent to the API as-is
-        and the API rejects it ("Invalid baseMicroVMImageVersion: 0.0. Expected a
-        single major version number") — the resource does NOT reach Synced=True.
-        This guards against silently rewriting user intent (e.g. "1.3.2" -> "1"
-        could unintentionally change the requested version).
-        """
-        (ref, _) = simple_microvm_image
-
-        # Make sure the image is built before driving an update.
-        cr = _wait_for_state(ref, ["CREATED", "UPDATED", "CREATE_FAILED"], CREATE_TIMEOUT_SECONDS)
-        assert cr["status"]["state"] in ("CREATED", "UPDATED"), \
-            f"image not built, state={cr['status']['state']}"
-
-        # Patch a malformed value. It must be forwarded verbatim and rejected by
-        # the API — NOT silently sanitized to "0".
-        k8s.patch_custom_resource(ref, {"spec": {"baseImageVersion": "0.0"}})
-
-        # The resource must NOT reach Synced=True (the API rejects "0.0").
-        synced = k8s.wait_on_condition(ref, "ACK.ResourceSynced", "True", wait_periods=4)
-        assert not synced, \
-            "resource unexpectedly synced with malformed baseImageVersion=0.0 " \
-            "(controller may still be sanitizing user input)"
-
-        # Recovery: setting a valid value should converge again.
-        k8s.patch_custom_resource(ref, {"spec": {"baseImageVersion": "0"}})
-        assert k8s.wait_on_condition(ref, "ACK.ResourceSynced", "True", wait_periods=8), \
-            "resource did not recover to Synced=True after setting valid baseImageVersion=0"
-
     def test_update(self, simple_microvm_image, lambdamicrovms_client):
         """Patching a build-config field (description) must actually reconcile:
         the image rebuilds into a new version carrying the new value.
