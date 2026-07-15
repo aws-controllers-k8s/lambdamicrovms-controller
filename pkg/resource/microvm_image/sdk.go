@@ -184,10 +184,6 @@ func (rm *resourceManager) sdkCreate(
 	if err != nil {
 		return nil, err
 	}
-	// The user chooses only the MINOR component of baseImageVersion (e.g.
-	// "0"); the builder owns the patch. Strip any patch the user pasted (e.g.
-	// "0.0" -> "0") so the request matches what the API validator accepts.
-	input.BaseImageVersion = sanitizeBaseImageVersion(input.BaseImageVersion)
 
 	var resp *svcsdk.CreateMicrovmImageOutput
 	_ = resp
@@ -411,6 +407,11 @@ func (rm *resourceManager) sdkCreate(
 		arn := ackv1alpha1.AWSResourceName(*resp.ImageArn)
 		ko.Status.ACKResourceMetadata.ARN = &arn
 	}
+	// Persist the sanitized base image version the API accepts into Spec (and
+	// the full resolved value into Status) straight from the create response, so
+	// it lands in etcd immediately and later reconciles see no spurious delta.
+	ko.Status.ResolvedBaseImageVersion = resp.BaseImageVersion
+	ko.Spec.BaseImageVersion = sanitizeBaseImageVersion(resp.BaseImageVersion)
 
 	return &resource{ko}, nil
 }
@@ -637,9 +638,8 @@ func (rm *resourceManager) sdkUpdate(
 		}
 	}
 	if !delta.DifferentExcept("Spec.Tags") {
-		// Tags-only change: already synced via TagResource/UntagResource
-		// above. Do NOT call UpdateMicrovmImage — it triggers a full image
-		// rebuild and cuts a new image version.
+		// Tags-only change: already synced above; skip UpdateMicrovmImage
+		// (it triggers a full rebuild).
 		return desired, nil
 	}
 
@@ -657,10 +657,6 @@ func (rm *resourceManager) sdkUpdate(
 	if err != nil {
 		return nil, err
 	}
-	// The user chooses only the MINOR component of baseImageVersion (e.g.
-	// "0"); the builder owns the patch. Strip any patch the user pasted (e.g.
-	// "0.0" -> "0") so the request matches what the API validator accepts.
-	input.BaseImageVersion = sanitizeBaseImageVersion(input.BaseImageVersion)
 
 	var resp *svcsdk.UpdateMicrovmImageOutput
 	_ = resp
@@ -872,6 +868,11 @@ func (rm *resourceManager) sdkUpdate(
 	}
 
 	rm.setStatusDefaults(ko)
+	// Keep the base image version fresh straight from the update response: the
+	// sanitized value the API accepts in Spec, the full resolved value in Status.
+	ko.Status.ResolvedBaseImageVersion = resp.BaseImageVersion
+	ko.Spec.BaseImageVersion = sanitizeBaseImageVersion(resp.BaseImageVersion)
+
 	return &resource{ko}, nil
 }
 

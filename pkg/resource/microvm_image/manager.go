@@ -50,7 +50,7 @@ var (
 // +kubebuilder:rbac:groups=lambdamicrovms.services.k8s.aws,resources=microvmimages,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=lambdamicrovms.services.k8s.aws,resources=microvmimages/status,verbs=get;update;patch
 
-var lateInitializeFieldNames = []string{"EgressNetworkConnectors", "Resources"}
+var lateInitializeFieldNames = []string{"BaseImageVersion", "EgressNetworkConnectors", "Resources"}
 
 // resourceManager is responsible for providing a consistent way to perform
 // CRUD operations in a backend AWS service API for Book custom resources.
@@ -262,6 +262,9 @@ func (rm *resourceManager) lateInitializeFromReadOneOutput(
 ) acktypes.AWSResource {
 	observedKo := rm.concreteResource(observed).ko.DeepCopy()
 	latestKo := rm.concreteResource(latest).ko.DeepCopy()
+	if observedKo.Spec.BaseImageVersion != nil && latestKo.Spec.BaseImageVersion == nil {
+		latestKo.Spec.BaseImageVersion = observedKo.Spec.BaseImageVersion
+	}
 	if observedKo.Spec.EgressNetworkConnectors != nil && latestKo.Spec.EgressNetworkConnectors == nil {
 		latestKo.Spec.EgressNetworkConnectors = observedKo.Spec.EgressNetworkConnectors
 	}

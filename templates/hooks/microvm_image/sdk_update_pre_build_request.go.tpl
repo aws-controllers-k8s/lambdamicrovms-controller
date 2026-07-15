@@ -4,8 +4,7 @@
 		}
 	}
 	if !delta.DifferentExcept("Spec.Tags") {
-		// Tags-only change: already synced via TagResource/UntagResource
-		// above. Do NOT call UpdateMicrovmImage — it triggers a full image
-		// rebuild and cuts a new image version.
+		// Tags-only change: already synced above; skip UpdateMicrovmImage
+		// (it triggers a full rebuild).
 		return desired, nil
 	}

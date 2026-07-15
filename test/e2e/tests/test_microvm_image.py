@@ -95,26 +95,32 @@ class TestMicrovmImage:
         assert arn is not None, "ARN not set in ackResourceMetadata"
         assert cr["status"].get("imageVersion") is not None, "imageVersion not set"
 
-        # The resolved base image version (MINOR.PATCH the builder picked, e.g.
-        # "0.0") is surfaced read-only in status, sourced from the active
-        # version. It must be populated once the image has an active version,
-        # and must NOT round-trip into spec.baseImageVersion (which stays the
-        # user's MINOR-only intent, unset here).
+        # baseImageVersion is populated from the create response (and kept fresh
+        # on read):
+        #   - status.resolvedBaseImageVersion = the full resolved value (e.g. "0.0")
+        #   - spec.baseImageVersion = the sanitized value the API accepts (e.g. "0")
         resolved = cr["status"].get("resolvedBaseImageVersion")
         assert resolved is not None, "resolvedBaseImageVersion not set in status"
-        assert cr.get("spec", {}).get("baseImageVersion") is None, \
-            f"resolved value leaked into spec.baseImageVersion: {cr['spec'].get('baseImageVersion')!r}"
+        spec_biv = cr.get("spec", {}).get("baseImageVersion")
+        assert spec_biv is not None, \
+            "spec.baseImageVersion not populated by refresh/late-init"
+        # The sanitized spec value is the leading integer of the resolved value.
+        assert "." not in spec_biv, \
+            f"spec.baseImageVersion should be sanitized (no dot), got {spec_biv!r}"
+        assert resolved.split(".")[0] == spec_biv, \
+            f"spec.baseImageVersion {spec_biv!r} should be the leading component of resolved {resolved!r}"
 
         # AWS API dual-verification
         aws_resp = lambdamicrovms_client.get_microvm_image(imageIdentifier=arn)
         assert aws_resp["state"] in ("CREATED", "UPDATED"), f"AWS state: {aws_resp['state']}"
 
-    def test_base_image_version_sanitized(self, simple_microvm_image, lambdamicrovms_client):
-        """A user may paste the resolved MINOR.PATCH they saw (e.g. "0.0") into
-        spec.baseImageVersion. The Update validator rejects "0.0" (it wants the
-        bare MINOR "0"), which previously wedged the resource. The controller
-        must strip the patch on the request side so the update still converges,
-        while leaving spec untouched.
+    def test_base_image_version_malformed_input_errors(self, simple_microvm_image, lambdamicrovms_client):
+        """The controller must NOT sanitize user input. If a user puts a malformed
+        value like "0.0" into spec.baseImageVersion, it is sent to the API as-is
+        and the API rejects it ("Invalid baseMicroVMImageVersion: 0.0. Expected a
+        single major version number") — the resource does NOT reach Synced=True.
+        This guards against silently rewriting user intent (e.g. "1.3.2" -> "1"
+        could unintentionally change the requested version).
         """
         (ref, _) = simple_microvm_image
 
@@ -123,18 +129,20 @@ class TestMicrovmImage:
         assert cr["status"]["state"] in ("CREATED", "UPDATED"), \
             f"image not built, state={cr['status']['state']}"
 
-        # Patch spec.baseImageVersion with the full MINOR.PATCH form. Without
-        # sanitization this would loop on "Invalid baseMicroVMImageVersion: 0.0"
-        # and never reach Synced=True.
+        # Patch a malformed value. It must be forwarded verbatim and rejected by
+        # the API — NOT silently sanitized to "0".
         k8s.patch_custom_resource(ref, {"spec": {"baseImageVersion": "0.0"}})
 
-        assert k8s.wait_on_condition(ref, "ACK.ResourceSynced", "True", wait_periods=8), \
-            "resource did not reach ACK.ResourceSynced=True after baseImageVersion=0.0 " \
-            "(sanitization likely not applied — request wedged on Invalid baseMicroVMImageVersion)"
+        # The resource must NOT reach Synced=True (the API rejects "0.0").
+        synced = k8s.wait_on_condition(ref, "ACK.ResourceSynced", "True", wait_periods=4)
+        assert not synced, \
+            "resource unexpectedly synced with malformed baseImageVersion=0.0 " \
+            "(controller may still be sanitizing user input)"
 
-        cr = k8s.get_resource(ref)
-        assert cr["status"]["state"] in ("CREATED", "UPDATED"), \
-            f"unexpected state after baseImageVersion patch: {cr['status']['state']}"
+        # Recovery: setting a valid value should converge again.
+        k8s.patch_custom_resource(ref, {"spec": {"baseImageVersion": "0"}})
+        assert k8s.wait_on_condition(ref, "ACK.ResourceSynced", "True", wait_periods=8), \
+            "resource did not recover to Synced=True after setting valid baseImageVersion=0"
 
     def test_update(self, simple_microvm_image, lambdamicrovms_client):
         """Patching a build-config field (description) must actually reconcile:
