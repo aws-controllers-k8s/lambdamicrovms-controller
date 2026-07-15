@@ -13,7 +13,7 @@ description: |-
   **About Amazon Lambda Microvms**
 
 
-  If you're building an application where multiple users or AI agents connect to a compute environment and run code (for e.g. interactive development environments, CI/CD systems, or sandboxes for AI) – you need compute environments that start fast, stay isolated between tenants, and don't require you to manage servers or networking.
+  If you''re building an application where multiple users or AI agents connect to a compute environment and run code (for e.g. interactive development environments, CI/CD systems, or sandboxes for AI) – you need compute environments that start fast, stay isolated between tenants, and don''t require you to manage servers or networking.
 
   AWS Lambda MicroVMs are purpose-built for these use cases. They are serverless compute environments that provide VM-level isolation with full operating system capabilities (for e.g. installing system packages or mounting filesystems), snapshot-based rapid startup speeds, and fine-grained control over ingress networking (port access, support for HTTP/2, gRPC, WebSockets) and egress networking (public internet access and VPC access).
 
