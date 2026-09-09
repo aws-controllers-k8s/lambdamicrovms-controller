@@ -4,7 +4,7 @@
 
 image:
   repository: public.ecr.aws/aws-controllers-k8s/lambdamicrovms-controller
-  tag: 0.3.0
+  tag: 0.3.1
   pullPolicy: IfNotPresent
   pullSecrets: []
 
